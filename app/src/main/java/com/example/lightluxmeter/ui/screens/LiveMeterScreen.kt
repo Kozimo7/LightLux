@@ -242,7 +242,7 @@ fun LiveMeterScreen() {
 
                         // ── Section 2: Exposure Controls Card ──
                         Card(
-                                modifier = Modifier.fillMaxWidth().weight(1f),
+                                modifier = Modifier.fillMaxWidth().height(220.dp),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(containerColor = CardBg)
                         ) {
@@ -295,22 +295,22 @@ fun LiveMeterScreen() {
                                                         modifier = Modifier.weight(1f)
                                                 )
 
-                                                // Shutter Speed column (center, single value)
-                                                Box(
-                                                        modifier =
-                                                                Modifier.weight(1f)
-                                                                        .fillMaxHeight()
-                                                                        .padding(horizontal = 4.dp),
-                                                        contentAlignment = Alignment.Center
-                                                ) {
-                                                        Text(
-                                                                text = shutterLabel,
-                                                                color = TextPrimary,
-                                                                fontSize = 22.sp,
-                                                                fontWeight = FontWeight.Bold,
-                                                                textAlign = TextAlign.Center
+                                                // Shutter Speed column
+                                                val allSpeeds =
+                                                        LuminosityAnalyzer.getStandardSpeedLabels()
+                                                val bestSpeedStr =
+                                                        LuminosityAnalyzer.formatShutterSpeed(
+                                                                shutterSeconds
                                                         )
-                                                }
+                                                val bestSpeedIndex = allSpeeds.indexOf(bestSpeedStr)
+
+                                                ScrollableSelector(
+                                                        items = allSpeeds,
+                                                        selectedIndex = bestSpeedIndex,
+                                                        onSelect = { /* Read only from user perspective, auto-scrolls */
+                                                        },
+                                                        modifier = Modifier.weight(1f)
+                                                )
 
                                                 // ISO column
                                                 ScrollableSelector(
@@ -325,7 +325,7 @@ fun LiveMeterScreen() {
 
                         // ── Section 3: Camera Preview Card ──
                         Card(
-                                modifier = Modifier.fillMaxWidth().height(160.dp),
+                                modifier = Modifier.fillMaxWidth().weight(1f),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(containerColor = CardBg)
                         ) {

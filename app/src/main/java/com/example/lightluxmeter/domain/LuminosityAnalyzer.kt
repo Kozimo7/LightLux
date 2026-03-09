@@ -166,6 +166,8 @@ class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAn
                         "60s"
                 )
 
+        fun getStandardSpeedLabels(): List<String> = standardSpeedLabels
+
         /** Formats shutter speed to standard camera fractions (e.g., 1/500). */
         fun formatShutterSpeed(timeSeconds: Double): String {
             var bestDistance = Double.MAX_VALUE
