@@ -1,6 +1,7 @@
 package com.example.lightluxmeter.ui.screens
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.hardware.camera2.CameraCaptureSession
 import android.hardware.camera2.CaptureRequest
@@ -30,7 +31,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -42,7 +42,7 @@ import com.example.lightluxmeter.R
 import com.example.lightluxmeter.domain.LuminosityAnalyzer
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 // Design tokens
 private val DarkBg = Color(0xFF1A1A1A)
@@ -52,6 +52,7 @@ private val TextPrimary = Color(0xFFFFFFFF)
 private val TextSecondary = Color(0xFFAAAAAA)
 private val SelectedBg = Color(0xFF3A3A3A)
 
+@SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LiveMeterScreen() {
@@ -96,15 +97,15 @@ fun LiveMeterScreen() {
                         22.0
                 )
 
-        var currentEv100 by remember { mutableStateOf(0.0) }
-        var currentLux by remember { mutableStateOf(0.0) }
-        var cameraApertureState by remember { mutableStateOf(0f) }
-        var cameraExposureNs by remember { mutableStateOf(0L) }
-        var cameraIsoState by remember { mutableStateOf(0) }
-        var calibrationOffset by remember { mutableStateOf(0.0) }
+        var currentEv100 by remember { mutableDoubleStateOf(0.0) }
+        var currentLux by remember { mutableDoubleStateOf(0.0) }
+        var cameraApertureState by remember { mutableFloatStateOf(0f) }
+        var cameraExposureNs by remember { mutableLongStateOf(0L) }
+        var cameraIsoState by remember { mutableIntStateOf(0) }
+        var calibrationOffset by remember { mutableDoubleStateOf(0.0) }
 
-        var selectedIsoIndex by remember { mutableStateOf(3) } // Default 400
-        var selectedApertureIndex by remember { mutableStateOf(11) } // Default f/8.0
+        var selectedIsoIndex by remember { mutableIntStateOf(3) } // Default 400
+        var selectedApertureIndex by remember { mutableIntStateOf(11) } // Default f/8.0
 
         val selectedIso = isoOptions[selectedIsoIndex]
         val selectedAperture = apertureOptions[selectedApertureIndex]
@@ -114,7 +115,6 @@ fun LiveMeterScreen() {
                         selectedIso,
                         selectedAperture
                 )
-        val shutterLabel = LuminosityAnalyzer.formatShutterSpeed(shutterSeconds)
 
         if (hasCameraPermission) {
                 Column(
@@ -346,7 +346,7 @@ fun LiveMeterScreen() {
                                                                                 calibrationOffset
                                                                         )
                                                         val rounded =
-                                                                Math.round(ev100 * 10.0) / 10.0
+                                                                (ev100 * 10.0).roundToInt() / 10.0
                                                         if (currentEv100 != rounded) {
                                                                 currentEv100 = rounded
                                                         }
@@ -402,12 +402,13 @@ fun LiveMeterScreen() {
 }
 
 /** Format camera exposure time (nanoseconds) to readable string */
+@SuppressLint("DefaultLocale")
 private fun formatExposureTime(ns: Long): String {
         val sec = ns / 1_000_000_000.0
         return if (sec >= 1.0) {
                 String.format("%.1fs", sec)
         } else {
-                val denom = Math.round(1.0 / sec)
+                val denom = (1.0 / sec).roundToInt()
                 "1/${denom}"
         }
 }
@@ -415,13 +416,13 @@ private fun formatExposureTime(ns: Long): String {
 // ─────────────────────────────────────────────────────────
 // Camera Preview with Camera2 Interop for metadata
 // ─────────────────────────────────────────────────────────
-@OptIn(ExperimentalCamera2Interop::class)
+@androidx.annotation.OptIn(ExperimentalCamera2Interop::class)
 @Composable
 fun CameraPreviewWithMetadata(
-        onMetadataUpdate: (aperture: Float, exposureTimeNs: Long, iso: Int) -> Unit
+    onMetadataUpdate: (aperture: Float, exposureTimeNs: Long, iso: Int) -> Unit
 ) {
         val context = LocalContext.current
-        val lifecycleOwner = LocalLifecycleOwner.current
+        val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
         val previewView = remember { PreviewView(context) }
         val cameraExecutor: ExecutorService = remember { Executors.newSingleThreadExecutor() }
 
@@ -430,11 +431,6 @@ fun CameraPreviewWithMetadata(
                 cameraProviderFuture.addListener(
                         {
                                 val cameraProvider = cameraProviderFuture.get()
-
-                                val preview =
-                                        Preview.Builder().build().also {
-                                                it.surfaceProvider = previewView.surfaceProvider
-                                        }
 
                                 // Build ImageAnalysis with Camera2 interop to get per-frame
                                 // metadata
@@ -568,51 +564,4 @@ fun ScrollableSelector(
                         }
                 }
         }
-}
-
-// Keep the old CameraPreview for backward compatibility (used by other screens if needed)
-@Composable
-fun CameraPreview(onLumaCalculated: (Double) -> Unit) {
-        val context = LocalContext.current
-        val lifecycleOwner = LocalLifecycleOwner.current
-        val previewView = remember { PreviewView(context) }
-        val cameraExecutor: ExecutorService = remember { Executors.newSingleThreadExecutor() }
-
-        DisposableEffect(Unit) {
-                val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-                cameraProviderFuture.addListener(
-                        {
-                                val cameraProvider = cameraProviderFuture.get()
-                                val preview =
-                                        Preview.Builder().build().also {
-                                                it.surfaceProvider = previewView.surfaceProvider
-                                        }
-                                val imageAnalyzer =
-                                        ImageAnalysis.Builder().build().also {
-                                                it.setAnalyzer(
-                                                        cameraExecutor,
-                                                        LuminosityAnalyzer { luma ->
-                                                                onLumaCalculated(luma)
-                                                        }
-                                                )
-                                        }
-                                val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-                                try {
-                                        cameraProvider.unbindAll()
-                                        cameraProvider.bindToLifecycle(
-                                                lifecycleOwner,
-                                                cameraSelector,
-                                                preview,
-                                                imageAnalyzer
-                                        )
-                                } catch (e: Exception) {
-                                        Log.e("CameraPreview", "Use case binding failed", e)
-                                }
-                        },
-                        ContextCompat.getMainExecutor(context)
-                )
-                onDispose { cameraExecutor.shutdown() }
-        }
-
-        AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
 }

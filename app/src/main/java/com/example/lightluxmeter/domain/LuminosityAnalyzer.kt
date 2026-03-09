@@ -3,16 +3,10 @@ package com.example.lightluxmeter.domain
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import java.nio.ByteBuffer
+import kotlin.math.abs
+import kotlin.math.ln
 import kotlin.math.log2
 import kotlin.math.pow
-
-/** Data class holding per-frame camera metadata for EV calculations. */
-data class ExposureMetadata(
-        val cameraAperture: Float, // N_cam (f-number)
-        val exposureTimeNs: Long, // t_cam in nanoseconds
-        val cameraIso: Int, // S_cam
-        val spotLuma: Double // Center-spot luminance (0-255)
-)
 
 class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAnalysis.Analyzer {
 
@@ -111,12 +105,7 @@ class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAn
          */
         fun mapLumaToEv(luma: Double): Double {
             val normalized = (luma / 255.0).coerceIn(0.01, 1.0)
-            return (Math.log(normalized) / Math.log(2.0)) + 15.0
-        }
-
-        /** Legacy wrapper for backward compatibility. */
-        fun calculateShutterSpeed(ev: Double, iso: Int, aperture: Double): Double {
-            return calculateFilmShutterSpeed(ev, iso, aperture)
+            return (ln(normalized) / ln(2.0)) + 15.0
         }
 
         private val standardSpeeds =
@@ -173,7 +162,7 @@ class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAn
             var bestDistance = Double.MAX_VALUE
             var bestIndex = 0
             for (i in standardSpeeds.indices) {
-                val distance = Math.abs(Math.log(timeSeconds / standardSpeeds[i]))
+                val distance = abs(ln(timeSeconds / standardSpeeds[i]))
                 if (distance < bestDistance) {
                     bestDistance = distance
                     bestIndex = i

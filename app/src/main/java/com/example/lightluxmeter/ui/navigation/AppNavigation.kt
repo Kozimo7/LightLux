@@ -2,7 +2,7 @@ package com.example.lightluxmeter.ui.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -27,7 +27,7 @@ import com.example.lightluxmeter.ui.screens.SettingsScreen
 
 sealed class Screen(val route: String, val titleResId: Int, val icon: ImageVector) {
     object LiveMeter : Screen("live_meter", R.string.nav_meter, Icons.Filled.PlayArrow)
-    object FilmGallery : Screen("film_gallery", R.string.nav_films, Icons.Filled.List)
+    object FilmGallery : Screen("film_gallery", R.string.nav_films, Icons.AutoMirrored.Filled.List)
     object Settings : Screen("settings", R.string.nav_settings, Icons.Filled.Settings)
 }
 
