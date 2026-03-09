@@ -5,6 +5,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -22,16 +23,18 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.lightluxmeter.R
 import com.example.lightluxmeter.ui.screens.FilmGalleryScreen
+import com.example.lightluxmeter.ui.screens.FlashCalcScreen
 import com.example.lightluxmeter.ui.screens.LiveMeterScreen
 import com.example.lightluxmeter.ui.screens.SettingsScreen
 
 sealed class Screen(val route: String, val titleResId: Int, val icon: ImageVector) {
     object LiveMeter : Screen("live_meter", R.string.nav_meter, Icons.Filled.PlayArrow)
+    object FlashCalc : Screen("flash_calc", R.string.nav_flash_calc, Icons.Filled.Star)
     object FilmGallery : Screen("film_gallery", R.string.nav_films, Icons.AutoMirrored.Filled.List)
     object Settings : Screen("settings", R.string.nav_settings, Icons.Filled.Settings)
 }
 
-val items = listOf(Screen.LiveMeter, Screen.FilmGallery, Screen.Settings)
+val items = listOf(Screen.LiveMeter, Screen.FlashCalc, Screen.FilmGallery, Screen.Settings)
 
 @Composable
 fun MainScreen() {
@@ -43,6 +46,7 @@ fun MainScreen() {
                 modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.LiveMeter.route) { LiveMeterScreen() }
+            composable(Screen.FlashCalc.route) { FlashCalcScreen() }
             composable(Screen.FilmGallery.route) { FilmGalleryScreen() }
             composable(Screen.Settings.route) { SettingsScreen() }
         }

@@ -157,6 +157,25 @@ class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAn
 
         fun getStandardSpeedLabels(): List<String> = standardSpeedLabels
 
+        /**
+         * Calculates the flash distance based on Aperture, ISO, Flash Power, and GN. Returns
+         * distance rounded to 1 decimal place.
+         */
+        fun calculateFlashDistance(
+                baseGN: Double,
+                iso: Int,
+                aperture: Float,
+                powerFraction: Double
+        ): Double {
+            val isoMultiplier = kotlin.math.sqrt(iso / 100.0)
+            val powerMultiplier = kotlin.math.sqrt(powerFraction)
+
+            val effectiveGN = baseGN * isoMultiplier * powerMultiplier
+            val distance = effectiveGN / aperture
+
+            return distance
+        }
+
         /** Formats shutter speed to standard camera fractions (e.g., 1/500). */
         fun formatShutterSpeed(timeSeconds: Double): String {
             var bestDistance = Double.MAX_VALUE
