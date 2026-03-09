@@ -242,7 +242,7 @@ fun LiveMeterScreen() {
 
                         // ── Section 2: Exposure Controls Card ──
                         Card(
-                                modifier = Modifier.fillMaxWidth().height(220.dp),
+                                modifier = Modifier.fillMaxWidth().height(185.dp),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(containerColor = CardBg)
                         ) {
@@ -419,7 +419,7 @@ private fun formatExposureTime(ns: Long): String {
 @androidx.annotation.OptIn(ExperimentalCamera2Interop::class)
 @Composable
 fun CameraPreviewWithMetadata(
-    onMetadataUpdate: (aperture: Float, exposureTimeNs: Long, iso: Int) -> Unit
+        onMetadataUpdate: (aperture: Float, exposureTimeNs: Long, iso: Int) -> Unit
 ) {
         val context = LocalContext.current
         val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
