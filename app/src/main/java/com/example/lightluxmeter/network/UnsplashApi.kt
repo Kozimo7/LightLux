@@ -14,7 +14,7 @@ data class UnsplashResponse(val results: List<UnsplashPhoto>)
 data class UnsplashPhoto(
         val id: String,
         val description: String?,
-        val alt_description: String?,
+        val altDescription: String?,
         val urls: UnsplashUrls
 )
 
@@ -44,7 +44,7 @@ interface UnsplashApi {
                             .add(
                                     "api.unsplash.com",
                                     "sha256/AYPYJLVU3pG/1G/91agkdpRH0s69R0pgl0eude3Na18="
-                            ) // Actual hash from log
+                            )
                             .build()
 
             val client = OkHttpClient.Builder().certificatePinner(certificatePinner).build()

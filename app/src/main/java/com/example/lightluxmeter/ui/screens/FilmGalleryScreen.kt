@@ -81,7 +81,7 @@ fun FilmGalleryScreen(viewModel: FilmGalleryViewModel = viewModel()) {
                                 AsyncImage(
                                         model = photo.urls.small,
                                         contentDescription = photo.description
-                                                        ?: photo.alt_description ?: "Film Photo",
+                                                        ?: photo.altDescription ?: "Film Photo",
                                         modifier = Modifier.aspectRatio(1f).fillMaxWidth(),
                                         contentScale = ContentScale.Crop
                                 )

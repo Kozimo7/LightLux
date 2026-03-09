@@ -3,6 +3,7 @@ package com.example.lightluxmeter.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -17,7 +18,6 @@ import com.example.lightluxmeter.ui.viewmodels.SettingsViewModel
 fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     val isDarkMode by viewModel.isDarkMode.collectAsState()
 
-    // We use a simple remember for Language UI state since it's handled via AppCompatDelegate
     var currentLang by remember { mutableStateOf(viewModel.getCurrentLanguage()) }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -53,7 +53,13 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                 }
             }
 
-            item { Divider(modifier = Modifier.padding(vertical = 16.dp)) }
+            item {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 16.dp),
+                    thickness = DividerDefaults.Thickness,
+                    color = DividerDefaults.color
+                )
+            }
 
             item {
                 Text(

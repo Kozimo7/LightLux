@@ -22,7 +22,6 @@ class FilmGalleryViewModel : ViewModel() {
     val uiState: StateFlow<GalleryUiState> = _uiState
 
     init {
-        // Load default film look on init
         searchFilms("Kodak Portra 400")
     }
 
@@ -30,7 +29,6 @@ class FilmGalleryViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = GalleryUiState.Loading
             try {
-                // IMPORTANT: The user must provide the real API key in UnsplashApi.kt
                 val response = api.searchPhotos(query = "$filmType film photography")
                 val photos = response.results
                 _uiState.value = GalleryUiState.Success(photos)

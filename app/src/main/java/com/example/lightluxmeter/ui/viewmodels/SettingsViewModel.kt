@@ -25,7 +25,6 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch { repository.setDarkMode(isEnabled) }
     }
 
-    // Language setting via AppCompatDelegate (Bonus requirement)
     fun setLanguage(languageTag: String) {
         val appLocale: LocaleListCompat = LocaleListCompat.forLanguageTags(languageTag)
         AppCompatDelegate.setApplicationLocales(appLocale)
