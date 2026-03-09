@@ -1,0 +1,42 @@
+# Built application files
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+*.klib
+
+# Generated files
+bin/
+gen/
+out/
+build/
+app/build/
+*/build/
+
+# IDE specific files
+.idea/
+*.iml
+*.iws
+.gradle/
+.mac/
+.cxx/
+.DS_Store
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log Files
+*.log
+
+# NDK
+obj/
+
+# Keystore files (do not commit your release keystores/props arrays to standard git!)
+*.jks
+*.keystore
+*_keystore.properties
+
+# Android Profiling
+*.hprof
+*.prof

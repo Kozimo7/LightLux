@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LightLux</string>
+    <string name="nav_meter">Exponometru</string>
+    <string name="nav_sunny16">Sunny 16</string>
+    <string name="nav_films">Filme</string>
+    <string name="nav_settings">Setări</string>
+    <string name="nav_logs">Jurnal</string>
+    <string name="saved_exposures_title">Expuneri Salvate</string>
+    <string name="no_logs_found">Nicio expunere salvată încă.</string>
+    <string name="exposure_saved">Expunere salvată!</string>
+
+    <string name="settings_title">Setări</string>
+    <string name="settings_appearance">Aspect</string>
+    <string name="settings_dark_mode">Mod întunecat</string>
+    <string name="settings_language">Limbă</string>
+    <string name="lang_english">Engleză</string>
+
+    <string name="lang_romanian">Română</string>
+    <string name="exposure_table_aperture">Diafragmă</string>
+    <string name="exposure_table_shutter_speed">Timp de expunere</string>
+    <string name="ev_format">EV: %1$s</string>
+    <string name="shutter_speed_format">Timp de expunere: %1$s</string>
+    <string name="aperture_format">f/%1$s</string>
+    <string name="iso_format">ISO %1$d</string>
+    <string name="retry">Reîncearcă</string>
+    <string name="save_reading">Salvează Expunerea</string>
+    <string name="save_exposure_log">Salvează Jurnal</string>
+    <string name="add_note">Adaugă o notă (caracterele SQL vor fi eliminate):</string>
+    <string name="save">Salvează</string>
+    <string name="cancel">Anulează</string>
+    <string name="camera_permission_required">Permisiunea pentru cameră este necesară pentru exponometru.</string>
+    <string name="search_film_hint">Caută Film (ex. ColorPlus 200)</string>
+    <string name="search">Caută</string>
+    <string name="film_gallery_desc">Caută fotografii realizate pe film, pe Unsplash.</string>
+    <string name="no_photos_found">Nicio fotografie găsită.</string>
+    <string name="select_film_iso">Selectează ISO Film</string>
+    <string name="fetching_weather">Se preiau datele meteo...</string>
+    <string name="recommended_settings">Setări Recomandate (f/16)</string>
+</resources>
