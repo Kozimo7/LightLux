@@ -12,7 +12,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.camera2.interop.Camera2Interop
 import androidx.camera.camera2.interop.ExperimentalCamera2Interop
+import androidx.camera.core.CameraControl
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -20,16 +22,23 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -116,6 +125,8 @@ fun LiveMeterScreen() {
                         selectedAperture
                 )
 
+        var isLocked by remember { mutableStateOf(false) }
+
         if (hasCameraPermission) {
                 Column(
                         modifier = Modifier.fillMaxSize().background(DarkBg).padding(12.dp),
@@ -131,13 +142,37 @@ fun LiveMeterScreen() {
                                         modifier = Modifier.padding(16.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                        // Title
-                                        Text(
-                                                text = "LightLux",
-                                                color = Amber,
-                                                fontSize = 18.sp,
-                                                fontWeight = FontWeight.Bold
-                                        )
+                                        // Title and Lock Button Row
+                                        Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                                Spacer(
+                                                        modifier = Modifier.size(48.dp)
+                                                ) // Balance the icon button
+                                                Text(
+                                                        text = "LightLux",
+                                                        color = Amber,
+                                                        fontSize = 18.sp,
+                                                        fontWeight = FontWeight.Bold
+                                                )
+                                                IconButton(onClick = { isLocked = !isLocked }) {
+                                                        Icon(
+                                                                imageVector =
+                                                                        if (isLocked)
+                                                                                Icons.Filled.Lock
+                                                                        else Icons.Filled.LockOpen,
+                                                                contentDescription =
+                                                                        if (isLocked)
+                                                                                "Unlock Exposure"
+                                                                        else "Lock Exposure",
+                                                                tint =
+                                                                        if (isLocked) Amber
+                                                                        else TextSecondary
+                                                        )
+                                                }
+                                        }
 
                                         Spacer(modifier = Modifier.height(12.dp))
 
@@ -332,63 +367,32 @@ fun LiveMeterScreen() {
                                 Box(modifier = Modifier.fillMaxSize()) {
                                         CameraPreviewWithMetadata(
                                                 onMetadataUpdate = { aperture, exposureNs, iso ->
-                                                        cameraApertureState = aperture
-                                                        cameraExposureNs = exposureNs
-                                                        cameraIsoState = iso
+                                                        if (!isLocked) {
+                                                                cameraApertureState = aperture
+                                                                cameraExposureNs = exposureNs
+                                                                cameraIsoState = iso
 
-                                                        // Calculate EV100 from Camera2 metadata
-                                                        val ev100 =
-                                                                LuminosityAnalyzer
-                                                                        .computeEv100FromMetadata(
-                                                                                aperture,
-                                                                                exposureNs,
-                                                                                iso,
-                                                                                calibrationOffset
-                                                                        )
-                                                        val rounded =
-                                                                (ev100 * 10.0).roundToInt() / 10.0
-                                                        if (currentEv100 != rounded) {
-                                                                currentEv100 = rounded
+                                                                // Calculate EV100 from Camera2
+                                                                // metadata
+                                                                val ev100 =
+                                                                        LuminosityAnalyzer
+                                                                                .computeEv100FromMetadata(
+                                                                                        aperture,
+                                                                                        exposureNs,
+                                                                                        iso,
+                                                                                        calibrationOffset
+                                                                                )
+                                                                val rounded =
+                                                                        (ev100 * 10.0)
+                                                                                .roundToInt() / 10.0
+                                                                if (currentEv100 != rounded) {
+                                                                        currentEv100 = rounded
+                                                                }
+                                                                currentLux =
+                                                                        LuminosityAnalyzer
+                                                                                .ev100ToLux(ev100)
                                                         }
-                                                        currentLux =
-                                                                LuminosityAnalyzer.ev100ToLux(ev100)
                                                 }
-                                        )
-
-                                        // Spot metering rectangle overlay
-                                        Box(
-                                                modifier =
-                                                        Modifier.fillMaxSize(0.10f)
-                                                                .align(Alignment.Center)
-                                                                .background(Color.Transparent)
-                                                                .then(
-                                                                        Modifier.border(
-                                                                                width = 1.dp,
-                                                                                color = Amber,
-                                                                                shape =
-                                                                                        RoundedCornerShape(
-                                                                                                2.dp
-                                                                                        )
-                                                                        )
-                                                                )
-                                        )
-
-                                        // Label overlay
-                                        Text(
-                                                text = "Rear Camera – Spot Meter",
-                                                color = TextPrimary,
-                                                fontSize = 12.sp,
-                                                modifier =
-                                                        Modifier.align(Alignment.TopStart)
-                                                                .padding(10.dp)
-                                                                .background(
-                                                                        DarkBg.copy(alpha = 0.7f),
-                                                                        RoundedCornerShape(4.dp)
-                                                                )
-                                                                .padding(
-                                                                        horizontal = 8.dp,
-                                                                        vertical = 4.dp
-                                                                )
                                         )
                                 }
                         }
@@ -416,6 +420,7 @@ private fun formatExposureTime(ns: Long): String {
 // ─────────────────────────────────────────────────────────
 // Camera Preview with Camera2 Interop for metadata
 // ─────────────────────────────────────────────────────────
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @androidx.annotation.OptIn(ExperimentalCamera2Interop::class)
 @Composable
 fun CameraPreviewWithMetadata(
@@ -425,6 +430,12 @@ fun CameraPreviewWithMetadata(
         val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
         val previewView = remember { PreviewView(context) }
         val cameraExecutor: ExecutorService = remember { Executors.newSingleThreadExecutor() }
+
+        var cameraControl by remember { mutableStateOf<CameraControl?>(null) }
+        var minZoomRatio by remember { mutableFloatStateOf(1f) }
+        var maxZoomRatio by remember { mutableFloatStateOf(1f) }
+        var currentZoomRatio by remember { mutableFloatStateOf(1f) }
+        var tapPosition by remember { mutableStateOf<Offset?>(null) }
 
         DisposableEffect(Unit) {
                 val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
@@ -498,12 +509,20 @@ fun CameraPreviewWithMetadata(
 
                                 try {
                                         cameraProvider.unbindAll()
-                                        cameraProvider.bindToLifecycle(
-                                                lifecycleOwner,
-                                                cameraSelector,
-                                                previewWithMetadata,
-                                                imageAnalysis
-                                        )
+                                        val camera =
+                                                cameraProvider.bindToLifecycle(
+                                                        lifecycleOwner,
+                                                        cameraSelector,
+                                                        previewWithMetadata,
+                                                        imageAnalysis
+                                                )
+                                        cameraControl = camera.cameraControl
+                                        camera.cameraInfo.zoomState.observe(lifecycleOwner) {
+                                                zoomState ->
+                                                minZoomRatio = zoomState.minZoomRatio
+                                                maxZoomRatio = zoomState.maxZoomRatio
+                                                currentZoomRatio = zoomState.zoomRatio
+                                        }
                                 } catch (e: Exception) {
                                         Log.e("CameraPreview", "Use case binding failed", e)
                                 }
@@ -514,7 +533,152 @@ fun CameraPreviewWithMetadata(
                 onDispose { cameraExecutor.shutdown() }
         }
 
-        AndroidView(factory = { previewView }, modifier = Modifier.fillMaxSize())
+        Box(modifier = Modifier.fillMaxSize()) {
+                AndroidView(
+                        factory = { previewView },
+                        modifier =
+                                Modifier.fillMaxSize().pointerInput(Unit) {
+                                        detectTapGestures(
+                                                onTap = { offset ->
+                                                        tapPosition = offset
+                                                        val factory =
+                                                                previewView.meteringPointFactory
+                                                        val point =
+                                                                factory.createPoint(
+                                                                        offset.x,
+                                                                        offset.y
+                                                                )
+                                                        val action =
+                                                                FocusMeteringAction.Builder(
+                                                                                point,
+                                                                                FocusMeteringAction
+                                                                                        .FLAG_AE
+                                                                        )
+                                                                        .build()
+                                                        cameraControl?.startFocusAndMetering(action)
+                                                }
+                                        )
+                                }
+                )
+
+                // Circle indicator at tap position
+                val currentTapPosition = tapPosition
+                if (currentTapPosition != null) {
+                        val circleSize = 80.dp
+                        val density = androidx.compose.ui.platform.LocalDensity.current
+                        val offsetX = with(density) { currentTapPosition.x.toDp() - circleSize / 2 }
+                        val offsetY = with(density) { currentTapPosition.y.toDp() - circleSize / 2 }
+                        Box(
+                                modifier =
+                                        Modifier.offset(x = offsetX, y = offsetY)
+                                                .size(circleSize)
+                                                .border(
+                                                        width = 1.5.dp,
+                                                        color = Color.White,
+                                                        shape = RoundedCornerShape(50)
+                                                )
+                        )
+                }
+
+                // Custom Zoom bar on the far right
+                if (maxZoomRatio > minZoomRatio) {
+                        val baseFocalLength = 26f
+                        val clampedMinZoom = 1f.coerceAtLeast(minZoomRatio)
+                        val clampedMaxZoom = 15f.coerceAtMost(maxZoomRatio)
+                        val currentMm = (baseFocalLength * currentZoomRatio).toInt()
+
+                        Column(
+                                modifier =
+                                        Modifier.align(Alignment.CenterEnd)
+                                                .padding(top = 40.dp, bottom = 40.dp, end = 12.dp)
+                                                .fillMaxHeight(0.6f)
+                                                .width(48.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Bottom
+                        ) {
+                                BoxWithConstraints(
+                                        modifier =
+                                                Modifier.weight(1f).fillMaxWidth().pointerInput(
+                                                                clampedMinZoom,
+                                                                clampedMaxZoom
+                                                        ) {
+                                                        detectVerticalDragGestures { change, _ ->
+                                                                change.consume()
+                                                                val dragAmount = change.position.y
+                                                                val height = size.height
+                                                                if (height > 0) {
+                                                                        val fraction =
+                                                                                (1f -
+                                                                                                (dragAmount /
+                                                                                                        height))
+                                                                                        .coerceIn(
+                                                                                                0f,
+                                                                                                1f
+                                                                                        )
+                                                                        val newZoom =
+                                                                                clampedMinZoom +
+                                                                                        (clampedMaxZoom -
+                                                                                                clampedMinZoom) *
+                                                                                                fraction
+                                                                        cameraControl?.setZoomRatio(
+                                                                                newZoom
+                                                                        )
+                                                                        currentZoomRatio = newZoom
+                                                                }
+                                                        }
+                                                },
+                                        contentAlignment = Alignment.Center
+                                ) {
+                                        val trackHeight = maxHeight
+
+                                        // Track line
+                                        Box(
+                                                modifier =
+                                                        Modifier.fillMaxHeight()
+                                                                .width(2.dp)
+                                                                .background(
+                                                                        Color.White.copy(
+                                                                                alpha = 0.2f
+                                                                        ),
+                                                                        RoundedCornerShape(1.dp)
+                                                                )
+                                        )
+
+                                        // Thumb indicator
+                                        val thumbFraction =
+                                                (currentZoomRatio - clampedMinZoom) /
+                                                        (clampedMaxZoom - clampedMinZoom)
+                                        Box(
+                                                modifier =
+                                                        Modifier.align(Alignment.BottomCenter)
+                                                                .offset(
+                                                                        y =
+                                                                                -(thumbFraction *
+                                                                                                trackHeight
+                                                                                                        .value)
+                                                                                        .dp
+                                                                )
+                                                                .size(24.dp, 6.dp)
+                                                                .background(
+                                                                        Amber,
+                                                                        RoundedCornerShape(3.dp)
+                                                                )
+                                        )
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                Text(
+                                        text = "${currentMm}mm",
+                                        color = Color.White,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = TextAlign.Center,
+                                        softWrap = false
+                                )
+                        }
+                }
+        }
 }
 
 // ─────────────────────────────────────────────────────────
