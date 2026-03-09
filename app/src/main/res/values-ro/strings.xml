@@ -35,6 +35,7 @@
     <string name="film_gallery_desc">Caută fotografii realizate pe film, pe Unsplash.</string>
     <string name="no_photos_found">Nicio fotografie găsită.</string>
     <string name="select_film_iso">Selectează ISO Film</string>
-    <string name="fetching_weather">Se preiau datele meteo...</string>
+    <string name="fetching_weather">Se preiau datele meteo…</string>
     <string name="recommended_settings">Setări Recomandate (f/16)</string>
+    <string name="nav_flash_calc">Flash</string>
 </resources>

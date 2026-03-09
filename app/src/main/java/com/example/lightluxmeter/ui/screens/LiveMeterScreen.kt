@@ -105,7 +105,7 @@ fun LiveMeterScreen() {
         var calibrationOffset by remember { mutableDoubleStateOf(0.0) }
 
         var selectedIsoIndex by remember { mutableIntStateOf(3) } // Default 400
-        var selectedApertureIndex by remember { mutableIntStateOf(11) } // Default f/8.0
+        var selectedApertureIndex by remember { mutableIntStateOf(6) } // Default f/5.6
 
         val selectedIso = isoOptions[selectedIsoIndex]
         val selectedAperture = apertureOptions[selectedApertureIndex]

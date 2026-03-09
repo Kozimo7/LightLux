@@ -32,6 +32,7 @@
     <string name="film_gallery_desc">Search Unsplash for film photography examples.</string>
     <string name="no_photos_found">No photos found.</string>
     <string name="select_film_iso">Select Film ISO</string>
-    <string name="fetching_weather">Fetching weather data...</string>
+    <string name="fetching_weather">Fetching weather data…</string>
     <string name="recommended_settings">Recommended Settings (f/16)</string>
+    <string name="nav_flash_calc">Flash</string>
 </resources>
