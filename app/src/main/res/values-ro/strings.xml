@@ -59,4 +59,5 @@
     <string name="distance_cm_format">%1$.1f cm</string>
     <string name="distance_m_format">%1$.1f m</string>
     <string name="gn_format">%1$d m @ %2$d mm</string>
+    <string name="close">Inchide</string>"
 </resources>
