@@ -11,6 +11,10 @@
     <string name="settings_title">Settings</string>
     <string name="settings_appearance">Appearance</string>
     <string name="settings_dark_mode">Dark Mode</string>
+    <string name="settings_shutter_steps">Shutter Speed Steps</string>
+    <string name="shutter_step_full">Full Stops</string>
+    <string name="shutter_step_half">1/2 Stops</string>
+    <string name="shutter_step_third">1/3 Stops</string>
     <string name="settings_language">Language</string>
     <string name="lang_english">English</string>
     <string name="lang_romanian">Romanian (Română)</string>
@@ -35,4 +39,21 @@
     <string name="fetching_weather">Fetching weather data…</string>
     <string name="recommended_settings">Recommended Settings (f/16)</string>
     <string name="nav_flash_calc">Flash</string>
+    <string name="flash_calc_distance_label">DISTANCE</string>
+    <string name="flash_calc_aperture">Aperture</string>
+    <string name="flash_calc_iso">ISO</string>
+    <string name="flash_calc_power">Flash Power</string>
+    <string name="flash_calc_gn">Guide Number (GN)</string>
+    <string name="meter_lock_content_desc">Lock Exposure</string>
+    <string name="meter_unlock_content_desc">Unlock Exposure</string>
+    <string name="meter_camera_prefix">Camera:</string>
+    <string name="meter_cal_prefix">Cal:</string>
+    <string name="meter_ev_label">EV₁₀₀</string>
+    <string name="meter_lux_label">Lux</string>
+    <string name="film_photo_desc">Film Photo</string>
+    <string name="error_prefix">Error: %1$s</string>
+    <string name="camera_metadata_format">Camera: f/%1$.1f · %2$s · ISO %3$d</string>
+    <string name="distance_cm_format">%1$.1f cm</string>
+    <string name="distance_m_format">%1$.1f m</string>
+    <string name="gn_format">%1$d m @ %2$d mm</string>
 </resources>

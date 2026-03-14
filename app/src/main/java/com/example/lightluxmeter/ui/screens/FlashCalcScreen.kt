@@ -10,6 +10,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.example.lightluxmeter.R
 import com.example.lightluxmeter.domain.LuminosityAnalyzer
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -26,7 +28,6 @@ fun FlashCalcScreen() {
         var isoIndex by remember { mutableIntStateOf(3) } // 400 ISO default
         var apertureIndex by remember { mutableIntStateOf(6) } // f/5.6 default
         var powerIndex by remember { mutableIntStateOf(12) } // 1/4 default
-        var previousPowerIndex by remember { mutableIntStateOf(12) }
 
         // Scale mappings for discrete sliders
         val gnValues = listOf(15f, 28f, 30f, 36f, 42f, 50f, 53f, 58f)
@@ -75,14 +76,8 @@ fun FlashCalcScreen() {
                 } else {
                         val baseIndex = powerIndex / 3
                         val offset = powerIndex % 3
-                        val goingRight = powerIndex >= previousPowerIndex
-                        if (offset == 1) {
-                                if (goingRight) "${powerBases[baseIndex]} + 0.3"
-                                else "${powerBases[baseIndex + 1]} - 0.7"
-                        } else {
-                                if (goingRight) "${powerBases[baseIndex]} + 0.7"
-                                else "${powerBases[baseIndex + 1]} - 0.3"
-                        }
+                        val offsetStr = if (offset == 1) "+ 0.3" else "+ 0.7"
+                        "${powerBases[baseIndex]} $offsetStr"
                 }
 
         // Calculate real-time distance
@@ -113,7 +108,7 @@ fun FlashCalcScreen() {
                                         horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
                                         Text(
-                                                "DISTANCE",
+                                                stringResource(R.string.flash_calc_distance_label),
                                                 fontSize = 14.sp,
                                                 color = Amber,
                                                 fontWeight = FontWeight.SemiBold,
@@ -121,8 +116,8 @@ fun FlashCalcScreen() {
                                         )
                                         Spacer(modifier = Modifier.height(8.dp))
                                         val displayDistance =
-                                                if (distance < 1.0) "%.1f cm".format(distance * 100)
-                                                else "%.1f m".format(distance)
+                                                if (distance < 1.0) stringResource(R.string.distance_cm_format, distance * 100)
+                                                else stringResource(R.string.distance_m_format, distance)
                                         Text(
                                                 text = displayDistance,
                                                 fontSize = 48.sp,
@@ -134,7 +129,7 @@ fun FlashCalcScreen() {
 
                         // Aperture Slider
                         CustomSliderCard(
-                                label = "Aperture",
+                                label = stringResource(R.string.flash_calc_aperture),
                                 valueText = "f/$currentAperture",
                                 value = apertureIndex.toFloat(),
                                 onValueChange = { apertureIndex = it.roundToInt() },
@@ -144,7 +139,7 @@ fun FlashCalcScreen() {
 
                         // ISO Slider
                         CustomSliderCard(
-                                label = "ISO",
+                                label = stringResource(R.string.flash_calc_iso),
                                 valueText = currentIso.toString(),
                                 value = isoIndex.toFloat(),
                                 onValueChange = { isoIndex = it.roundToInt() },
@@ -154,7 +149,7 @@ fun FlashCalcScreen() {
 
                         // Power Slider
                         CustomSliderCard(
-                                label = "Flash Power",
+                                label = stringResource(R.string.flash_calc_power),
                                 valueText = currentPowerName,
                                 value = powerIndex.toFloat(),
                                 onValueChange = {
@@ -167,9 +162,12 @@ fun FlashCalcScreen() {
 
                         // GN Slider
                         CustomSliderCard(
-                                label = "Guide Number (GN)",
-                                valueText =
-                                        "${currentGn.toInt()} m @ ${gnFocalLengths[gnIndex]} mm",
+                                label = stringResource(R.string.flash_calc_gn),
+                                valueText = stringResource(
+                                        R.string.gn_format,
+                                        currentGn.toInt(),
+                                        gnFocalLengths[gnIndex]
+                                ),
                                 value = gnIndex.toFloat(),
                                 onValueChange = { gnIndex = it.roundToInt() },
                                 valueRange = 0f..(gnValues.size - 1).toFloat(),

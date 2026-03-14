@@ -81,7 +81,7 @@ fun FilmGalleryScreen(viewModel: FilmGalleryViewModel = viewModel()) {
                                 AsyncImage(
                                         model = photo.urls.small,
                                         contentDescription = photo.description
-                                                        ?: photo.altDescription ?: "Film Photo",
+                                                        ?: photo.altDescription ?: stringResource(R.string.film_photo_desc),
                                         modifier = Modifier.aspectRatio(1f).fillMaxWidth(),
                                         contentScale = ContentScale.Crop
                                 )
@@ -91,7 +91,7 @@ fun FilmGalleryScreen(viewModel: FilmGalleryViewModel = viewModel()) {
                 }
                 is GalleryUiState.Error -> {
                     Text(
-                            text = "Error: ${state.message}",
+                            text = stringResource(R.string.error_prefix, state.message),
                             color = MaterialTheme.colorScheme.error,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.align(Alignment.Center)
