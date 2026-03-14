@@ -21,8 +21,19 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     initialValue = false
             )
 
+    val shutterSpeedSteps: StateFlow<String> =
+            repository.shutterSpeedSteps.stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = "third"
+            )
+
     fun setDarkMode(isEnabled: Boolean) {
         viewModelScope.launch { repository.setDarkMode(isEnabled) }
+    }
+    
+    fun setShutterSpeedSteps(steps: String) {
+        viewModelScope.launch { repository.setShutterSpeedSteps(steps) }
     }
 
     fun setLanguage(languageTag: String) {

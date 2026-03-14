@@ -27,36 +27,38 @@ data class UnsplashUrls(
 )
 
 interface UnsplashApi {
-    @Headers("Accept-Version: v1")
-    @GET("search/photos")
-    suspend fun searchPhotos(
-            @Query("query") query: String,
-            @Query("client_id") clientId: String = "NScnJ4yctfdBDkmMNIAjrjNml_KL6Hnum08DIeQk8ik",
-            @Query("per_page") perPage: Int = 30
-    ): UnsplashResponse
+        @Headers("Accept-Version: v1")
+        @GET("search/photos")
+        suspend fun searchPhotos(
+                @Query("query") query: String,
+                @Query("client_id")
+                clientId: String = "NScnJ4yctfdBDkmMNIAjrjNml_KL6Hnum08DIeQk8ik",
+                @Query("per_page") perPage: Int = 30
+        ): UnsplashResponse
 
-    companion object {
-        private const val BASE_URL = "https://api.unsplash.com/"
+        companion object {
+                private const val BASE_URL = "https://api.unsplash.com/"
 
-        fun create(): UnsplashApi {
-            val certificatePinner =
-                    CertificatePinner.Builder()
-                            .add(
-                                    "api.unsplash.com",
-                                    "sha256/AYPYJLVU3pG/1G/91agkdpRH0s69R0pgl0eude3Na18="
-                            )
-                            .build()
+                fun create(): UnsplashApi {
+                        val certificatePinner =
+                                CertificatePinner.Builder()
+                                        .add(
+                                                "api.unsplash.com",
+                                                "sha256/AYPYJLVU3pG/1G/91agkdpRH0s69R0pgl0eude3Na18="
+                                        )
+                                        .build()
 
-            val client = OkHttpClient.Builder().certificatePinner(certificatePinner).build()
+                        val client =
+                                OkHttpClient.Builder().certificatePinner(certificatePinner).build()
 
-            val retrofit =
-                    Retrofit.Builder()
-                            .baseUrl(BASE_URL)
-                            .client(client)
-                            .addConverterFactory(GsonConverterFactory.create())
-                            .build()
+                        val retrofit =
+                                Retrofit.Builder()
+                                        .baseUrl(BASE_URL)
+                                        .client(client)
+                                        .addConverterFactory(GsonConverterFactory.create())
+                                        .build()
 
-            return retrofit.create(UnsplashApi::class.java)
+                        return retrofit.create(UnsplashApi::class.java)
+                }
         }
-    }
 }

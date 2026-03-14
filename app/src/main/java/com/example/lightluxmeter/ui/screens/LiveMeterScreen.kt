@@ -8,6 +8,7 @@ import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.CaptureResult
 import android.hardware.camera2.TotalCaptureResult
 import android.util.Log
+import com.example.lightluxmeter.R
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.camera2.interop.Camera2Interop
@@ -47,8 +48,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
-import com.example.lightluxmeter.R
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.lightluxmeter.domain.LuminosityAnalyzer
+import com.example.lightluxmeter.ui.viewmodels.SettingsViewModel
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.roundToInt
@@ -64,8 +66,9 @@ private val SelectedBg = Color(0xFF3A3A3A)
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LiveMeterScreen() {
+fun LiveMeterScreen(settingsViewModel: SettingsViewModel = viewModel()) {
         val context = LocalContext.current
+        val shutterSteps by settingsViewModel.shutterSpeedSteps.collectAsState()
 
         var hasCameraPermission by remember {
                 mutableStateOf(
@@ -164,9 +167,9 @@ fun LiveMeterScreen() {
                                                                                 Icons.Filled.Lock
                                                                         else Icons.Filled.LockOpen,
                                                                 contentDescription =
-                                                                        if (isLocked)
-                                                                                "Unlock Exposure"
-                                                                        else "Lock Exposure",
+                                                                if (isLocked)
+                                                                        stringResource(R.string.meter_unlock_content_desc)
+                                                                else stringResource(R.string.meter_lock_content_desc),
                                                                 tint =
                                                                         if (isLocked) Amber
                                                                         else TextSecondary
@@ -187,8 +190,8 @@ fun LiveMeterScreen() {
                                                                 Alignment.CenterHorizontally
                                                 ) {
                                                         Text(
-                                                                text = "EV₁₀₀",
-                                                                color = TextSecondary,
+                                                                text = stringResource(R.string.meter_ev_label),
+                                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
                                                                 fontSize = 13.sp
                                                         )
                                                         Text(
@@ -209,8 +212,8 @@ fun LiveMeterScreen() {
                                                                 Alignment.CenterHorizontally
                                                 ) {
                                                         Text(
-                                                                text = "Lux",
-                                                                color = TextSecondary,
+                                                                text = stringResource(R.string.meter_lux_label),
+                                                                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f),
                                                                 fontSize = 13.sp
                                                         )
                                                         Text(
@@ -230,10 +233,12 @@ fun LiveMeterScreen() {
 
                                         // Camera metadata info
                                         Text(
-                                                text =
-                                                        "Camera: f/${String.format("%.1f", cameraApertureState)} · " +
-                                                                "${if (cameraExposureNs > 0) formatExposureTime(cameraExposureNs) else "—"} · " +
-                                                                "ISO $cameraIsoState",
+                                                text = stringResource(
+                                                        R.string.camera_metadata_format,
+                                                        cameraApertureState,
+                                                        if (cameraExposureNs > 0) formatExposureTime(cameraExposureNs) else "—",
+                                                        cameraIsoState
+                                                ),
                                                 color = TextSecondary,
                                                 fontSize = 11.sp
                                         )
@@ -245,8 +250,8 @@ fun LiveMeterScreen() {
                                                 modifier = Modifier.padding(top = 6.dp)
                                         ) {
                                                 Text(
-                                                        text = "Cal:",
-                                                        color = TextSecondary,
+                                                        text = stringResource(R.string.meter_camera_prefix),
+                                                        color = MaterialTheme.colorScheme.primary,
                                                         fontSize = 11.sp
                                                 )
                                                 Spacer(modifier = Modifier.width(4.dp))
@@ -309,7 +314,7 @@ fun LiveMeterScreen() {
                                                         textAlign = TextAlign.Center
                                                 )
                                                 Text(
-                                                        text = "ISO",
+                                                        text = stringResource(R.string.flash_calc_iso),
                                                         color = Amber,
                                                         fontSize = 14.sp,
                                                         fontWeight = FontWeight.Bold,
@@ -332,10 +337,13 @@ fun LiveMeterScreen() {
 
                                                 // Shutter Speed column
                                                 val allSpeeds =
-                                                        LuminosityAnalyzer.getStandardSpeedLabels()
+                                                        LuminosityAnalyzer.fetchStandardSpeedLabels(
+                                                                shutterSteps
+                                                        )
                                                 val bestSpeedStr =
                                                         LuminosityAnalyzer.formatShutterSpeed(
-                                                                shutterSeconds
+                                                                shutterSeconds,
+                                                                shutterSteps
                                                         )
                                                 val bestSpeedIndex = allSpeeds.indexOf(bestSpeedStr)
 

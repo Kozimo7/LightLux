@@ -3,6 +3,7 @@ package com.example.lightluxmeter.domain
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import java.nio.ByteBuffer
+import kotlin.collections.listOf
 import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.log2
@@ -108,55 +109,6 @@ class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAn
             return (ln(normalized) / ln(2.0)) + 15.0
         }
 
-        private val standardSpeeds =
-                listOf(
-                        1.0 / 8000,
-                        1.0 / 4000,
-                        1.0 / 2000,
-                        1.0 / 1000,
-                        1.0 / 500,
-                        1.0 / 250,
-                        1.0 / 125,
-                        1.0 / 60,
-                        1.0 / 30,
-                        1.0 / 15,
-                        1.0 / 8,
-                        1.0 / 4,
-                        1.0 / 2,
-                        1.0,
-                        2.0,
-                        4.0,
-                        8.0,
-                        15.0,
-                        30.0,
-                        60.0
-                )
-        private val standardSpeedLabels =
-                listOf(
-                        "1/8000",
-                        "1/4000",
-                        "1/2000",
-                        "1/1000",
-                        "1/500",
-                        "1/250",
-                        "1/125",
-                        "1/60",
-                        "1/30",
-                        "1/15",
-                        "1/8",
-                        "1/4",
-                        "1/2",
-                        "1s",
-                        "2s",
-                        "4s",
-                        "8s",
-                        "15s",
-                        "30s",
-                        "60s"
-                )
-
-        fun getStandardSpeedLabels(): List<String> = standardSpeedLabels
-
         /**
          * Calculates the flash distance based on Aperture, ISO, Flash Power, and GN. Returns
          * distance rounded to 1 decimal place.
@@ -176,18 +128,161 @@ class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAn
             return distance
         }
 
-        /** Formats shutter speed to standard camera fractions (e.g., 1/500). */
-        fun formatShutterSpeed(timeSeconds: Double): String {
-            var bestDistance = Double.MAX_VALUE
-            var bestIndex = 0
-            for (i in standardSpeeds.indices) {
-                val distance = abs(ln(timeSeconds / standardSpeeds[i]))
-                if (distance < bestDistance) {
-                    bestDistance = distance
-                    bestIndex = i
+        private val FULL_STOPS: List<Pair<Double, String>> =
+                listOf(
+                        30.0 to "30s",
+                        25.0 to "25s",
+                        20.0 to "20s",
+                        15.0 to "15s",
+                        12.0 to "12s",
+                        10.0 to "10s",
+                        8.0 to "8s",
+                        6.0 to "6s",
+                        5.0 to "5s",
+                        4.0 to "4s",
+                        2.0 to "2s",
+                        1.0 to "1s",
+                        0.5 to "1/2",
+                        0.25 to "1/4",
+                        0.125 to "1/8",
+                        0.0666 to "1/15",
+                        0.0333 to "1/30",
+                        0.0166 to "1/60",
+                        0.008 to "1/125",
+                        0.004 to "1/250",
+                        0.002 to "1/500",
+                        0.001 to "1/1000",
+                        0.0005 to "1/2000",
+                        0.00025 to "1/4000",
+                        0.000125 to "1/8000"
+                )
+
+        private val HALF_STOPS: List<Pair<Double, String>> =
+                listOf(
+                        30.0 to "30s",
+                        25.0 to "25s",
+                        20.0 to "20s",
+                        15.0 to "15s",
+                        12.0 to "12s",
+                        10.0 to "10s",
+                        8.0 to "8s",
+                        6.0 to "6s",
+                        5.0 to "5s",
+                        4.0 to "4s",
+                        2.0 to "2s",
+                        1.0 to "1s",
+                        0.5 to "1/2",
+                        0.25 to "1/4",
+                        0.166 to "1/6",
+                        0.125 to "1/8",
+                        0.1 to "1/10",
+                        0.0666 to "1/15",
+                        0.05 to "1/20",
+                        0.0333 to "1/30",
+                        0.0222 to "1/45",
+                        0.0166 to "1/60",
+                        0.0111 to "1/90",
+                        0.008 to "1/125",
+                        0.0055 to "1/180",
+                        0.004 to "1/250",
+                        0.0028 to "1/350",
+                        0.002 to "1/500",
+                        0.0013 to "1/750",
+                        0.001 to "1/1000",
+                        0.00066 to "1/1500",
+                        0.0005 to "1/2000",
+                        0.00033 to "1/3000",
+                        0.00025 to "1/4000",
+                        0.00016 to "1/6000",
+                        0.000125 to "1/8000"
+                )
+
+        private val THIRD_STOPS: List<Pair<Double, String>> =
+                listOf(
+                        30.0 to "30s",
+                        25.0 to "25s",
+                        20.0 to "20s",
+                        15.0 to "15s",
+                        12.0 to "12s",
+                        10.0 to "10s",
+                        8.0 to "8s",
+                        6.0 to "6s",
+                        5.0 to "5s",
+                        4.0 to "4s",
+                        2.0 to "2s",
+                        1.0 to "1s",
+                        0.5 to "1/2",
+                        0.25 to "1/4",
+                        0.2 to "1/5",
+                        0.166 to "1/6",
+                        0.125 to "1/8",
+                        0.1 to "1/10",
+                        0.0769 to "1/13",
+                        0.0666 to "1/15",
+                        0.05 to "1/20",
+                        0.04 to "1/25",
+                        0.0333 to "1/30",
+                        0.025 to "1/40",
+                        0.02 to "1/50",
+                        0.0166 to "1/60",
+                        0.0125 to "1/80",
+                        0.01 to "1/100",
+                        0.008 to "1/125",
+                        0.00625 to "1/160",
+                        0.005 to "1/200",
+                        0.004 to "1/250",
+                        0.00312 to "1/320",
+                        0.0025 to "1/400",
+                        0.002 to "1/500",
+                        0.00156 to "1/640",
+                        0.00125 to "1/800",
+                        0.001 to "1/1000",
+                        0.0008 to "1/1250",
+                        0.00062 to "1/1600",
+                        0.0005 to "1/2000",
+                        0.0004 to "1/2500",
+                        0.00031 to "1/3200",
+                        0.00025 to "1/4000",
+                        0.0002 to "1/5000",
+                        0.00015 to "1/6400",
+                        0.000125 to "1/8000"
+                )
+
+        /**
+         * Formats shutter speed to standard camera fractions (e.g., 1/500) based on configuration.
+         */
+        fun formatShutterSpeed(timeSeconds: Double, stepsConfig: String = "third"): String {
+
+            val targetList =
+                    when (stepsConfig) {
+                        "full" -> FULL_STOPS
+                        "half" -> HALF_STOPS
+                        else -> THIRD_STOPS // Default is "third"
+                    }
+
+            var closestMatch = targetList[0].second
+            var smallestDiff = Double.MAX_VALUE
+
+            for ((value, label) in targetList) {
+                val diff = abs(timeSeconds - value)
+                if (diff < smallestDiff) {
+                    smallestDiff = diff
+                    closestMatch = label
                 }
             }
-            return standardSpeedLabels[bestIndex]
+
+            return closestMatch
+        }
+
+        /** Returns the list of standard speed labels based on configuration. */
+        fun fetchStandardSpeedLabels(stepsConfig: String = "third"): List<String> {
+            val targetList =
+                    when (stepsConfig) {
+                        "full" -> FULL_STOPS
+                        "half" -> HALF_STOPS
+                        else -> THIRD_STOPS
+                    }
+            return targetList.map { it.second }.reversed() // Reversed from shortest to longest
         }
     }
 }
