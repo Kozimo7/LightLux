@@ -116,6 +116,10 @@ fun LiveMeterScreen(settingsViewModel: SettingsViewModel = viewModel()) {
         var cameraIsoState by remember { mutableIntStateOf(0) }
         var calibrationOffset by remember { mutableDoubleStateOf(0.0) }
 
+        // Continuous averaging states
+        val continuousExposureBuffer = remember { mutableStateListOf<Double>() }
+        var lastIntervalStartTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+
         var selectedIsoIndex by remember { mutableIntStateOf(3) } // Default 400
         var selectedApertureIndex by remember { mutableIntStateOf(6) } // Default f/5.6
 
@@ -390,15 +394,22 @@ fun LiveMeterScreen(settingsViewModel: SettingsViewModel = viewModel()) {
                                                                                         iso,
                                                                                         calibrationOffset
                                                                                 )
-                                                                val rounded =
-                                                                        (ev100 * 10.0)
-                                                                                .roundToInt() / 10.0
-                                                                if (currentEv100 != rounded) {
-                                                                        currentEv100 = rounded
+                                                                
+                                                                continuousExposureBuffer.add(ev100)
+                                                                
+                                                                val now = System.currentTimeMillis()
+                                                                if (now - lastIntervalStartTime >= 500) {
+                                                                        if (continuousExposureBuffer.isNotEmpty()) {
+                                                                                val averageEv = continuousExposureBuffer.average()
+                                                                                val rounded = (averageEv * 10.0).roundToInt() / 10.0
+                                                                                if (currentEv100 != rounded) {
+                                                                                        currentEv100 = rounded
+                                                                                }
+                                                                                currentLux = LuminosityAnalyzer.ev100ToLux(averageEv)
+                                                                                continuousExposureBuffer.clear()
+                                                                        }
+                                                                        lastIntervalStartTime = now
                                                                 }
-                                                                currentLux =
-                                                                        LuminosityAnalyzer
-                                                                                .ev100ToLux(ev100)
                                                         }
                                                 }
                                         )
