@@ -8,7 +8,6 @@ import android.hardware.camera2.CaptureRequest
 import android.hardware.camera2.CaptureResult
 import android.hardware.camera2.TotalCaptureResult
 import android.util.Log
-import com.example.lightluxmeter.R
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.camera2.interop.Camera2Interop
@@ -26,7 +25,21 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -34,14 +47,36 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -49,11 +84,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.lightluxmeter.R
 import com.example.lightluxmeter.domain.LuminosityAnalyzer
-import com.example.lightluxmeter.ui.viewmodels.SettingsViewModel
 import com.example.lightluxmeter.ui.viewmodels.ExposureViewModel
-import androidx.compose.material.icons.filled.Save
+import com.example.lightluxmeter.ui.viewmodels.SettingsViewModel
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.roundToInt
@@ -95,42 +131,20 @@ fun LiveMeterScreen(
                 }
         }
 
-        val isoOptions = listOf(50, 100, 200, 400, 800, 1600, 3200, 6400)
-        val apertureOptions =
-                listOf(
-                        1.8,
-                        2.4,
-                        2.8,
-                        3.5,
-                        4.0,
-                        4.8,
-                        5.6,
-                        6.7,
-                        8.0,
-                        9.5,
-                        11.0,
-                        13.0,
-                        16.0,
-                        19.0,
-                        22.0
-                )
 
-        var currentEv100 by remember { mutableDoubleStateOf(0.0) }
-        var currentLux by remember { mutableDoubleStateOf(0.0) }
+        val currentEv100 by exposureViewModel.currentEv100.collectAsState()
+        val currentLux by exposureViewModel.currentLux.collectAsState()
+
         var cameraApertureState by remember { mutableFloatStateOf(0f) }
         var cameraExposureNs by remember { mutableLongStateOf(0L) }
         var cameraIsoState by remember { mutableIntStateOf(0) }
         var calibrationOffset by remember { mutableDoubleStateOf(0.0) }
 
-        // Continuous averaging states
-        val continuousExposureBuffer = remember { mutableStateListOf<Double>() }
-        var lastIntervalStartTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
-
         var selectedIsoIndex by remember { mutableIntStateOf(3) } // Default 400
         var selectedApertureIndex by remember { mutableIntStateOf(6) } // Default f/5.6
 
-        val selectedIso = isoOptions[selectedIsoIndex]
-        val selectedAperture = apertureOptions[selectedApertureIndex]
+        val selectedIso = LiveMeterConstants.ISO_OPTIONS[selectedIsoIndex]
+        val selectedAperture = LiveMeterConstants.APERTURE_OPTIONS[selectedApertureIndex]
         val shutterSeconds =
                 LuminosityAnalyzer.calculateFilmShutterSpeed(
                         currentEv100,
@@ -346,7 +360,7 @@ fun LiveMeterScreen(
                                         Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
                                                 // Aperture column
                                                 ScrollableSelector(
-                                                        items = apertureOptions.map { "f/${it}" },
+                                                        items = LiveMeterConstants.APERTURE_OPTIONS.map { "f/${it}" },
                                                         selectedIndex = selectedApertureIndex,
                                                         onSelect = { selectedApertureIndex = it },
                                                         modifier = Modifier.weight(1f)
@@ -374,7 +388,7 @@ fun LiveMeterScreen(
 
                                                 // ISO column
                                                 ScrollableSelector(
-                                                        items = isoOptions.map { it.toString() },
+                                                        items = LiveMeterConstants.ISO_OPTIONS.map { it.toString() },
                                                         selectedIndex = selectedIsoIndex,
                                                         onSelect = { selectedIsoIndex = it },
                                                         modifier = Modifier.weight(1f)
@@ -408,21 +422,7 @@ fun LiveMeterScreen(
                                                                                         calibrationOffset
                                                                                 )
                                                                 
-                                                                continuousExposureBuffer.add(ev100)
-                                                                
-                                                                val now = System.currentTimeMillis()
-                                                                if (now - lastIntervalStartTime >= 500) {
-                                                                        if (continuousExposureBuffer.isNotEmpty()) {
-                                                                                val averageEv = continuousExposureBuffer.average()
-                                                                                val rounded = (averageEv * 10.0).roundToInt() / 10.0
-                                                                                if (currentEv100 != rounded) {
-                                                                                        currentEv100 = rounded
-                                                                                }
-                                                                                currentLux = LuminosityAnalyzer.ev100ToLux(averageEv)
-                                                                                continuousExposureBuffer.clear()
-                                                                        }
-                                                                        lastIntervalStartTime = now
-                                                                }
+                                                                exposureViewModel.updateLiveMetadata(ev100)
                                                         }
                                                 }
                                         )
@@ -448,9 +448,9 @@ fun LiveMeterScreen(
                                         confirmButton = {
                                                 TextButton(
                                                         onClick = {
-                                                                val selectedAperture = apertureOptions[selectedApertureIndex]
+                                                                val selectedAperture = LiveMeterConstants.APERTURE_OPTIONS[selectedApertureIndex]
                                                                 val formattedSpeed = LuminosityAnalyzer.formatShutterSpeed(shutterSeconds, shutterSteps)
-                                                                val selectedIso = isoOptions[selectedIsoIndex]
+                                                                val selectedIso = LiveMeterConstants.ISO_OPTIONS[selectedIsoIndex]
                                                                 exposureViewModel.saveReading(
                                                                         currentEv100.toFloat(),
                                                                         currentLux.toFloat(),
@@ -503,7 +503,7 @@ fun CameraPreviewWithMetadata(
         onMetadataUpdate: (aperture: Float, exposureTimeNs: Long, iso: Int) -> Unit
 ) {
         val context = LocalContext.current
-        val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+        val lifecycleOwner = LocalLifecycleOwner.current
         val previewView = remember { PreviewView(context) }
         val cameraExecutor: ExecutorService = remember { Executors.newSingleThreadExecutor() }
 
@@ -654,7 +654,7 @@ fun CameraPreviewWithMetadata(
                 val currentTapPosition = tapPosition
                 if (currentTapPosition != null) {
                         val circleSize = 50.dp
-                        val density = androidx.compose.ui.platform.LocalDensity.current
+                        val density = LocalDensity.current
                         val offsetX = with(density) { currentTapPosition.x.toDp() - circleSize / 2 }
                         val offsetY = with(density) { currentTapPosition.y.toDp() - circleSize / 2 }
                         Box(
@@ -823,4 +823,9 @@ fun ScrollableSelector(
                         }
                 }
         }
+}
+
+object LiveMeterConstants {
+    val ISO_OPTIONS = listOf(50, 100, 200, 400, 800, 1600, 3200, 6400)
+    val APERTURE_OPTIONS = listOf(1.8, 2.4, 2.8, 3.5, 4.0, 4.8, 5.6, 6.7, 8.0, 9.5, 11.0, 13.0, 16.0, 19.0, 22.0)
 }

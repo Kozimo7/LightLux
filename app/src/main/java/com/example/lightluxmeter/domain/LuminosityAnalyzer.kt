@@ -1,8 +1,8 @@
 package com.example.lightluxmeter.domain
 
+import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
-import java.nio.ByteBuffer
 import kotlin.collections.listOf
 import kotlin.math.abs
 import kotlin.math.ln
@@ -11,42 +11,48 @@ import kotlin.math.pow
 
 class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAnalysis.Analyzer {
 
+    @Volatile
     var spotPosition: Pair<Double, Double> = 0.5 to 0.5
 
     override fun analyze(image: ImageProxy) {
-        val plane = image.planes[0]
-        val buffer = plane.buffer
-        val width = image.width
-        val height = image.height
-        val rowStride = plane.rowStride
+        try {
+            val plane = image.planes[0]
+            val buffer = plane.buffer
+            val width = image.width
+            val height = image.height
+            val rowStride = plane.rowStride
 
-        val spotSize = 0.05
+            val spotSize = 0.05
 
-        val centerX = (spotPosition.first * width).coerceIn(0.0, width.toDouble())
-        val centerY = (spotPosition.second * height).coerceIn(0.0, height.toDouble())
+            val currentPos = spotPosition
+            val centerX = (currentPos.first * width).coerceIn(0.0, width.toDouble())
+            val centerY = (currentPos.second * height).coerceIn(0.0, height.toDouble())
 
-        val left = (centerX - (spotSize / 2.0 * width)).toInt().coerceAtLeast(0)
-        val right = (centerX + (spotSize / 2.0 * width)).toInt().coerceAtMost(width)
-        val top = (centerY - (spotSize / 2.0 * height)).toInt().coerceAtLeast(0)
-        val bottom = (centerY + (spotSize / 2.0 * height)).toInt().coerceAtMost(height)
+            val left = (centerX - (spotSize / 2.0 * width)).toInt().coerceAtLeast(0)
+            val right = (centerX + (spotSize / 2.0 * width)).toInt().coerceAtMost(width)
+            val top = (centerY - (spotSize / 2.0 * height)).toInt().coerceAtLeast(0)
+            val bottom = (centerY + (spotSize / 2.0 * height)).toInt().coerceAtMost(height)
 
-        var sum = 0L
-        var count = 0
-
-        for (y in top until bottom) {
-            for (x in left until right) {
-                val index = y * rowStride + x
-                if (index < buffer.capacity()) {
-                    sum += (buffer.get(index).toInt() and 0xFF)
-                    count++
+            var sum = 0L
+            var count = 0
+            
+            for (y in top until bottom) {
+                for (x in left until right) {
+                    val index = y * rowStride + x
+                    if (index < buffer.capacity()) {
+                        sum += (buffer.get(index).toInt() and 0xFF)
+                        count++
+                    }
                 }
             }
+
+            val luma = if (count > 0) sum.toDouble() / count else 0.0
+            listener(luma)
+        } catch (e: Exception) {
+            Log.e("LuminosityAnalyzer", "Error analyzing image", e)
+        } finally {
+            image.close()
         }
-
-        val luma = if (count > 0) sum.toDouble() / count else 0.0
-
-        listener(luma)
-        image.close()
     }
 
     companion object {
