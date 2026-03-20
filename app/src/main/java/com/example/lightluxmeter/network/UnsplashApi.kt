@@ -1,5 +1,6 @@
 package com.example.lightluxmeter.network
 
+import com.example.lightluxmeter.BuildConfig
 import okhttp3.CertificatePinner
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -32,7 +33,7 @@ interface UnsplashApi {
         suspend fun searchPhotos(
                 @Query("query") query: String,
                 @Query("client_id")
-                clientId: String = "NScnJ4yctfdBDkmMNIAjrjNml_KL6Hnum08DIeQk8ik",
+                clientId: String = BuildConfig.UNSPLASH_CLIENT_ID,
                 @Query("per_page") perPage: Int = 30
         ): UnsplashResponse
 
