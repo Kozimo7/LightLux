@@ -23,6 +23,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
@@ -512,14 +513,13 @@ fun CameraPreviewWithMetadata(
         var currentZoomRatio by remember { mutableFloatStateOf(1f) }
         var tapPosition by remember { mutableStateOf<Offset?>(null) }
 
+        val analyzer = remember { LuminosityAnalyzer { } }
+
         DisposableEffect(Unit) {
                 val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
                 cameraProviderFuture.addListener(
                         {
                                 val cameraProvider = cameraProviderFuture.get()
-
-                                // Build ImageAnalysis with Camera2 interop to get per-frame
-                                // metadata
                                 val imageAnalysisBuilder = ImageAnalysis.Builder()
 
                                 Camera2Interop.Extender(imageAnalysisBuilder)
@@ -530,15 +530,11 @@ fun CameraPreviewWithMetadata(
 
                                 val imageAnalysis =
                                         imageAnalysisBuilder.build().also {
-                                                it.setAnalyzer(
-                                                        cameraExecutor,
-                                                        LuminosityAnalyzer { /* luma not needed */}
-                                                )
+                                                it.setAnalyzer(cameraExecutor, analyzer)
                                         }
 
-                                // Use Preview's Camera2 interop for capture callback to get
-                                // metadata
                                 val previewBuilder = Preview.Builder()
+                                
                                 Camera2Interop.Extender(previewBuilder)
                                         .setSessionCaptureCallback(
                                                 object : CameraCaptureSession.CaptureCallback() {
@@ -612,34 +608,52 @@ fun CameraPreviewWithMetadata(
                 AndroidView(
                         factory = { previewView },
                         modifier =
-                                Modifier.fillMaxSize().pointerInput(Unit) {
-                                        detectTapGestures(
-                                                onTap = { offset ->
-                                                        tapPosition = offset
-                                                        val factory =
-                                                                previewView.meteringPointFactory
-                                                        val point =
-                                                                factory.createPoint(
-                                                                        offset.x,
-                                                                        offset.y
-                                                                )
-                                                        val action =
-                                                                FocusMeteringAction.Builder(
-                                                                                point,
-                                                                                FocusMeteringAction
-                                                                                        .FLAG_AE
-                                                                        )
-                                                                        .build()
-                                                        cameraControl?.startFocusAndMetering(action)
-                                                }
-                                        )
-                                }
+                                Modifier.fillMaxSize()
+                                        .pointerInput(Unit) {
+                                                detectTapGestures(
+                                                        onTap = { offset ->
+                                                                tapPosition = offset
+                                                                analyzer.spotPosition = (offset.x / size.width).toDouble() to (offset.y / size.height).toDouble()
+                                                                val factory = previewView.meteringPointFactory
+                                                                val point = factory.createPoint(offset.x, offset.y)
+                                                                val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AE).build()
+                                                                cameraControl?.startFocusAndMetering(action)
+                                                        }
+                                                )
+                                        }
+                                        .pointerInput(Unit) {
+                                                detectDragGestures(
+                                                        onDragStart = { offset ->
+                                                                tapPosition = offset
+
+                                                                analyzer.spotPosition = (offset.x / size.width).toDouble() to (offset.y / size.height).toDouble()
+
+                                                                val factory = previewView.meteringPointFactory
+                                                                val point = factory.createPoint(offset.x, offset.y)
+                                                                val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AE).build()
+                                                                cameraControl?.startFocusAndMetering(action)
+                                                        },
+                                                        onDrag = { change, dragAmount ->
+                                                                change.consume()
+                                                                val newPos = (tapPosition ?: change.position) + dragAmount
+                                                                tapPosition = newPos
+
+                                                                analyzer.spotPosition = (newPos.x / size.width).toDouble() to (newPos.y / size.height).toDouble()
+
+                                                                val factory = previewView.meteringPointFactory
+                                                                val point = factory.createPoint(newPos.x, newPos.y)
+                                                                val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AE).build()
+                                                                cameraControl?.setZoomRatio(currentZoomRatio) // keep zoom
+                                                                cameraControl?.startFocusAndMetering(action)
+                                                        }
+                                                )
+                                        }
                 )
 
                 // Circle indicator at tap position
                 val currentTapPosition = tapPosition
                 if (currentTapPosition != null) {
-                        val circleSize = 80.dp
+                        val circleSize = 50.dp
                         val density = androidx.compose.ui.platform.LocalDensity.current
                         val offsetX = with(density) { currentTapPosition.x.toDp() - circleSize / 2 }
                         val offsetY = with(density) { currentTapPosition.y.toDp() - circleSize / 2 }

@@ -11,34 +11,33 @@ import kotlin.math.pow
 
 class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAnalysis.Analyzer {
 
-    private fun ByteBuffer.toByteArray(): ByteArray {
-        rewind()
-        val data = ByteArray(remaining())
-        get(data)
-        return data
-    }
+    var spotPosition: Pair<Double, Double> = 0.5 to 0.5
 
     override fun analyze(image: ImageProxy) {
-        val buffer = image.planes[0].buffer
-        val data = buffer.toByteArray()
-
-        // Spot metering: sample center 10% of the frame
+        val plane = image.planes[0]
+        val buffer = plane.buffer
         val width = image.width
         val height = image.height
-        val spotSize = 0.10
-        val left = ((1.0 - spotSize) / 2.0 * width).toInt()
-        val right = ((1.0 + spotSize) / 2.0 * width).toInt()
-        val top = ((1.0 - spotSize) / 2.0 * height).toInt()
-        val bottom = ((1.0 + spotSize) / 2.0 * height).toInt()
+        val rowStride = plane.rowStride
 
-        val rowStride = image.planes[0].rowStride
+        val spotSize = 0.05
+
+        val centerX = (spotPosition.first * width).coerceIn(0.0, width.toDouble())
+        val centerY = (spotPosition.second * height).coerceIn(0.0, height.toDouble())
+
+        val left = (centerX - (spotSize / 2.0 * width)).toInt().coerceAtLeast(0)
+        val right = (centerX + (spotSize / 2.0 * width)).toInt().coerceAtMost(width)
+        val top = (centerY - (spotSize / 2.0 * height)).toInt().coerceAtLeast(0)
+        val bottom = (centerY + (spotSize / 2.0 * height)).toInt().coerceAtMost(height)
+
         var sum = 0L
         var count = 0
+
         for (y in top until bottom) {
             for (x in left until right) {
                 val index = y * rowStride + x
-                if (index < data.size) {
-                    sum += (data[index].toInt() and 0xFF)
+                if (index < buffer.capacity()) {
+                    sum += (buffer.get(index).toInt() and 0xFF)
                     count++
                 }
             }
