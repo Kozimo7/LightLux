@@ -686,17 +686,19 @@ fun CameraPreviewWithMetadata(
                                                                                 (1f -
                                                                                                 (dragAmount /
                                                                                                         height))
-                                                                                        .coerceIn(
-                                                                                                0f,
-                                                                                                1f
-                                                                                        )
-                                                                        val newZoom =
-                                                                                clampedMinZoom +
-                                                                                        (clampedMaxZoom -
-                                                                                                clampedMinZoom) *
-                                                                                                fraction
+                                                                                        .coerceIn(0f, 1f)
+
+                                                                        val midZ = 150f / 26f
+                                                                        val maxZ = 15.0f
+                                                                        
+                                                                        val newZoom = if (fraction <= 0.75f) {
+                                                                            1.0f + (midZ - 1.0f) * (fraction / 0.75f)
+                                                                        } else {
+                                                                            midZ + (maxZ - midZ) * ((fraction - 0.75f) / 0.25f)
+                                                                        }
+                                                                        
                                                                         cameraControl?.setZoomRatio(
-                                                                                newZoom
+                                                                                newZoom.coerceIn(clampedMinZoom, clampedMaxZoom)
                                                                         )
                                                                         currentZoomRatio = newZoom
                                                                 }
@@ -719,10 +721,14 @@ fun CameraPreviewWithMetadata(
                                                                 )
                                         )
 
-                                        // Thumb indicator
-                                        val thumbFraction =
-                                                (currentZoomRatio - clampedMinZoom) /
-                                                        (clampedMaxZoom - clampedMinZoom)
+                                        val midZ = 150f / 26f
+                                        val maxZ = 15.0f
+                                        val thumbFraction = if (currentZoomRatio <= midZ) {
+                                            ((currentZoomRatio - 1.0f) / (midZ - 1.0f)) * 0.75f
+                                        } else {
+                                            0.75f + ((currentZoomRatio - midZ) / (maxZ - midZ)) * 0.25f
+                                        }
+
                                         Box(
                                                 modifier =
                                                         Modifier.align(Alignment.BottomCenter)
