@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">LightLux</string>
-    <string name="nav_meter">Exponometru</string>
+    <string name="nav_meter">Expunere</string>
     <string name="nav_sunny16">Sunny 16</string>
     <string name="nav_films">Filme</string>
     <string name="nav_settings">Setări</string>

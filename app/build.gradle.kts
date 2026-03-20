@@ -76,10 +76,14 @@ dependencies {
     // ViewModel Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     
+    // SQLCipher for Room Encryption
+    implementation(libs.android.database.sqlcipher)
+    
     // AppCompat for Locale selection
     implementation("androidx.appcompat:appcompat:1.7.0")
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

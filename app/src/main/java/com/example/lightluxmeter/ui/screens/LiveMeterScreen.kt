@@ -51,6 +51,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.lightluxmeter.domain.LuminosityAnalyzer
 import com.example.lightluxmeter.ui.viewmodels.SettingsViewModel
+import com.example.lightluxmeter.ui.viewmodels.ExposureViewModel
+import androidx.compose.material.icons.filled.Save
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.roundToInt
@@ -66,7 +68,10 @@ private val SelectedBg = Color(0xFF3A3A3A)
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LiveMeterScreen(settingsViewModel: SettingsViewModel = viewModel()) {
+fun LiveMeterScreen(
+    settingsViewModel: SettingsViewModel = viewModel(),
+    exposureViewModel: ExposureViewModel = viewModel()
+) {
         val context = LocalContext.current
         val shutterSteps by settingsViewModel.shutterSpeedSteps.collectAsState()
 
@@ -134,6 +139,9 @@ fun LiveMeterScreen(settingsViewModel: SettingsViewModel = viewModel()) {
 
         var isLocked by remember { mutableStateOf(false) }
 
+        var showSaveDialog by remember { mutableStateOf(false) }
+        var saveNote by remember { mutableStateOf("") }
+
         if (hasCameraPermission) {
                 Column(
                         modifier = Modifier.fillMaxSize().background(DarkBg).padding(12.dp),
@@ -155,9 +163,13 @@ fun LiveMeterScreen(settingsViewModel: SettingsViewModel = viewModel()) {
                                                 horizontalArrangement = Arrangement.SpaceBetween,
                                                 verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                                Spacer(
-                                                        modifier = Modifier.size(48.dp)
-                                                ) // Balance the icon button
+                                         IconButton(onClick = { showSaveDialog = true }) {
+                                                Icon(
+                                                        imageVector = Icons.Filled.Save,
+                                                        contentDescription = stringResource(R.string.save_reading),
+                                                        tint = TextSecondary
+                                                )
+                                        }
                                                 Text(
                                                         text = "LightLux",
                                                         color = Amber,
@@ -414,6 +426,50 @@ fun LiveMeterScreen(settingsViewModel: SettingsViewModel = viewModel()) {
                                                 }
                                         )
                                 }
+                        }
+
+                        if (showSaveDialog) {
+                                AlertDialog(
+                                        onDismissRequest = { showSaveDialog = false },
+                                        title = { Text(stringResource(R.string.save_reading)) },
+                                        text = {
+                                                Column {
+                                                        Text(stringResource(R.string.add_note))
+                                                        Spacer(modifier = Modifier.height(8.dp))
+                                                        TextField(
+                                                                value = saveNote,
+                                                                onValueChange = { saveNote = it },
+                                                                modifier = Modifier.fillMaxWidth(),
+                                                                placeholder = { Text("...") }
+                                                        )
+                                                }
+                                        },
+                                        confirmButton = {
+                                                TextButton(
+                                                        onClick = {
+                                                                val selectedAperture = apertureOptions[selectedApertureIndex]
+                                                                val formattedSpeed = LuminosityAnalyzer.formatShutterSpeed(shutterSeconds, shutterSteps)
+                                                                val selectedIso = isoOptions[selectedIsoIndex]
+                                                                exposureViewModel.saveReading(
+                                                                        currentEv100.toFloat(),
+                                                                        currentLux.toFloat(),
+                                                                        selectedAperture,
+                                                                        formattedSpeed,
+                                                                        selectedIso,
+                                                                        saveNote
+                                                                )
+                                                                showSaveDialog = false
+                                                                saveNote = ""
+                                                        }
+                                                ) { Text(stringResource(R.string.save)) }
+                                        },
+                                        dismissButton = {
+                                                TextButton(onClick = { 
+                                                    showSaveDialog = false 
+                                                    saveNote = ""
+                                                }) { Text(stringResource(R.string.cancel)) }
+                                        }
+                                )
                         }
                 }
         } else {
