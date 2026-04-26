@@ -15,6 +15,7 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "se
 class SettingsRepository(private val context: Context) {
     private val DARK_MODE_KEY = booleanPreferencesKey("dark_mode")
     private val SHUTTER_STEPS_KEY = stringPreferencesKey("shutter_steps") // "full", "half", "third"
+    private val APERTURE_STEPS_KEY = stringPreferencesKey("aperture_steps") // "full", "half", "third"
 
     val isDarkMode: Flow<Boolean> =
             context.dataStore.data.map { preferences ->
@@ -25,6 +26,11 @@ class SettingsRepository(private val context: Context) {
             context.dataStore.data.map { preferences ->
                 preferences[SHUTTER_STEPS_KEY] ?: "third" // Default to 1/3 stops
             }
+            
+    val apertureSteps: Flow<String> = 
+            context.dataStore.data.map { preferences ->
+                preferences[APERTURE_STEPS_KEY] ?: "third" // Default to 1/3 stops
+            }
 
     suspend fun setDarkMode(isEnabled: Boolean) {
         context.dataStore.edit { preferences -> preferences[DARK_MODE_KEY] = isEnabled }
@@ -32,5 +38,9 @@ class SettingsRepository(private val context: Context) {
     
     suspend fun setShutterSpeedSteps(stepValue: String) {
         context.dataStore.edit { preferences -> preferences[SHUTTER_STEPS_KEY] = stepValue }
+    }
+    
+    suspend fun setApertureSteps(stepValue: String) {
+        context.dataStore.edit { preferences -> preferences[APERTURE_STEPS_KEY] = stepValue }
     }
 }

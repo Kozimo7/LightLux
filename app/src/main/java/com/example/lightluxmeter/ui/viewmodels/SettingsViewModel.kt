@@ -27,6 +27,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     started = SharingStarted.WhileSubscribed(5000),
                     initialValue = "third"
             )
+            
+    val apertureSteps: StateFlow<String> =
+            repository.apertureSteps.stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = "third"
+            )
 
     fun setDarkMode(isEnabled: Boolean) {
         viewModelScope.launch { repository.setDarkMode(isEnabled) }
@@ -34,6 +41,10 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     
     fun setShutterSpeedSteps(steps: String) {
         viewModelScope.launch { repository.setShutterSpeedSteps(steps) }
+    }
+    
+    fun setApertureSteps(steps: String) {
+        viewModelScope.launch { repository.setApertureSteps(steps) }
     }
 
     fun setLanguage(languageTag: String) {

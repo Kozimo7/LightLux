@@ -18,6 +18,7 @@ import com.example.lightluxmeter.ui.viewmodels.SettingsViewModel
 fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
     val isDarkMode by viewModel.isDarkMode.collectAsState()
     val shutterSteps by viewModel.shutterSpeedSteps.collectAsState()
+    val apertureSteps by viewModel.apertureSteps.collectAsState()
 
     var currentLang by remember { mutableStateOf(viewModel.getCurrentLanguage()) }
 
@@ -175,6 +176,74 @@ fun SettingsScreen(viewModel: SettingsViewModel = viewModel()) {
                     RadioButton(
                             selected = shutterSteps == "full",
                             onClick = { viewModel.setShutterSpeedSteps("full") }
+                    )
+                }
+            }
+            
+            item {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 16.dp),
+                    thickness = DividerDefaults.Thickness,
+                    color = DividerDefaults.color
+                )
+            }
+
+            item {
+                Text(
+                        text = stringResource(R.string.settings_aperture_steps),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            item {
+                Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                            text = stringResource(R.string.shutter_step_third),
+                            style = MaterialTheme.typography.bodyLarge
+                    )
+                    RadioButton(
+                            selected = apertureSteps == "third",
+                            onClick = { viewModel.setApertureSteps("third") }
+                    )
+                }
+            }
+            
+            item {
+                Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                            text = stringResource(R.string.shutter_step_half),
+                            style = MaterialTheme.typography.bodyLarge
+                    )
+                    RadioButton(
+                            selected = apertureSteps == "half",
+                            onClick = { viewModel.setApertureSteps("half") }
+                    )
+                }
+            }
+            
+            item {
+                Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                            text = stringResource(R.string.shutter_step_full),
+                            style = MaterialTheme.typography.bodyLarge
+                    )
+                    RadioButton(
+                            selected = apertureSteps == "full",
+                            onClick = { viewModel.setApertureSteps("full") }
                     )
                 }
             }

@@ -8,11 +8,23 @@ import kotlin.math.abs
 import kotlin.math.ln
 import kotlin.math.log2
 import kotlin.math.pow
+import kotlin.math.roundToInt
+
+// TODOs resolved in this version:
+// ✓ F-stop 1/2 and 1/3 steps
+// ✓ Ability to set aperture or shutter and modify the other
+// ✓ Reciprocity calculator
+// ✓ 60/40 center-weighted metering
+
+enum class MeteringMode { SPOT, CENTER_WEIGHTED }
 
 class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAnalysis.Analyzer {
 
     @Volatile
     var spotPosition: Pair<Double, Double> = 0.5 to 0.5
+
+    @Volatile
+    var meteringMode: MeteringMode = MeteringMode.SPOT
 
     override fun analyze(image: ImageProxy) {
         try {
@@ -22,37 +34,89 @@ class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAn
             val height = image.height
             val rowStride = plane.rowStride
 
-            val spotSize = 0.05
-
-            val currentPos = spotPosition
-            val centerX = (currentPos.first * width).coerceIn(0.0, width.toDouble())
-            val centerY = (currentPos.second * height).coerceIn(0.0, height.toDouble())
-
-            val left = (centerX - (spotSize / 2.0 * width)).toInt().coerceAtLeast(0)
-            val right = (centerX + (spotSize / 2.0 * width)).toInt().coerceAtMost(width)
-            val top = (centerY - (spotSize / 2.0 * height)).toInt().coerceAtLeast(0)
-            val bottom = (centerY + (spotSize / 2.0 * height)).toInt().coerceAtMost(height)
-
-            var sum = 0L
-            var count = 0
-            
-            for (y in top until bottom) {
-                for (x in left until right) {
-                    val index = y * rowStride + x
-                    if (index < buffer.capacity()) {
-                        sum += (buffer.get(index).toInt() and 0xFF)
-                        count++
-                    }
-                }
+            val luma = when (meteringMode) {
+                MeteringMode.SPOT -> analyzeSpot(buffer, width, height, rowStride)
+                MeteringMode.CENTER_WEIGHTED -> analyzeCenterWeighted(buffer, width, height, rowStride)
             }
 
-            val luma = if (count > 0) sum.toDouble() / count else 0.0
             listener(luma)
         } catch (e: Exception) {
             Log.e("LuminosityAnalyzer", "Error analyzing image", e)
         } finally {
             image.close()
         }
+    }
+
+    /** Original spot metering: small 5% region around the tap position. */
+    private fun analyzeSpot(buffer: java.nio.ByteBuffer, width: Int, height: Int, rowStride: Int): Double {
+        val spotSize = 0.05
+
+        val currentPos = spotPosition
+        val centerX = (currentPos.first * width).coerceIn(0.0, width.toDouble())
+        val centerY = (currentPos.second * height).coerceIn(0.0, height.toDouble())
+
+        val left = (centerX - (spotSize / 2.0 * width)).toInt().coerceAtLeast(0)
+        val right = (centerX + (spotSize / 2.0 * width)).toInt().coerceAtMost(width)
+        val top = (centerY - (spotSize / 2.0 * height)).toInt().coerceAtLeast(0)
+        val bottom = (centerY + (spotSize / 2.0 * height)).toInt().coerceAtMost(height)
+
+        var sum = 0L
+        var count = 0
+        
+        for (y in top until bottom) {
+            for (x in left until right) {
+                val index = y * rowStride + x
+                if (index < buffer.capacity()) {
+                    sum += (buffer.get(index).toInt() and 0xFF)
+                    count++
+                }
+            }
+        }
+
+        return if (count > 0) sum.toDouble() / count else 0.0
+    }
+
+    /**
+     * 60/40 center-weighted metering (Nikon FE2 style).
+     * 60% weight from the center circle (30% of min dimension radius),
+     * 40% weight from the surrounding area.
+     * Samples every 4th pixel for performance.
+     */
+    private fun analyzeCenterWeighted(buffer: java.nio.ByteBuffer, width: Int, height: Int, rowStride: Int): Double {
+        val cx = width / 2.0
+        val cy = height / 2.0
+        val radius = kotlin.math.min(width, height) * 0.15 // 30% of min dim diameter = 15% radius
+        val radiusSq = radius * radius
+
+        var centerSum = 0L
+        var centerCount = 0
+        var surroundSum = 0L
+        var surroundCount = 0
+
+        // Sample every 4th pixel for performance
+        val step = 4
+        for (y in 0 until height step step) {
+            for (x in 0 until width step step) {
+                val index = y * rowStride + x
+                if (index < buffer.capacity()) {
+                    val pixel = buffer.get(index).toInt() and 0xFF
+                    val dx = x - cx
+                    val dy = y - cy
+                    if (dx * dx + dy * dy <= radiusSq) {
+                        centerSum += pixel
+                        centerCount++
+                    } else {
+                        surroundSum += pixel
+                        surroundCount++
+                    }
+                }
+            }
+        }
+
+        val centerMean = if (centerCount > 0) centerSum.toDouble() / centerCount else 0.0
+        val surroundMean = if (surroundCount > 0) surroundSum.toDouble() / surroundCount else 0.0
+
+        return 0.6 * centerMean + 0.4 * surroundMean
     }
 
     companion object {
@@ -71,11 +135,10 @@ class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAn
         // ─────────────────────────────────────────────────
         fun calculateEv100(
                 evCamera: Double,
-                cameraIso: Int,
-                calibrationOffset: Double = 0.0
+                cameraIso: Int
         ): Double {
             val isoFactor = cameraIso.toDouble() / 100.0
-            return evCamera - log2(isoFactor) + calibrationOffset
+            return evCamera - log2(isoFactor)
         }
 
         // ─────────────────────────────────────────────────
@@ -88,21 +151,73 @@ class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAn
             return nSquared / denominator
         }
 
-        /** Convenience: given camera metadata, compute EV100 directly. */
-        fun computeEv100FromMetadata(
-                cameraAperture: Float,
-                exposureTimeNs: Long,
-                cameraIso: Int,
-                calibrationOffset: Double = 0.0
-        ): Double {
-            val exposureTimeSec = exposureTimeNs / 1_000_000_000.0
-            val evCam = calculateEvCamera(cameraAperture, exposureTimeSec)
-            return calculateEv100(evCam, cameraIso, calibrationOffset)
+        /**
+         * Solve for aperture: N = sqrt(t * 2^EV100 * (ISO/100))
+         */
+        fun calculateFilmAperture(ev100: Double, filmIso: Int, filmShutterSpeed: Double): Double {
+            val value = filmShutterSpeed * 2.0.pow(ev100) * (filmIso.toDouble() / 100.0)
+            if (value <= 0.0) return 1.4
+            return kotlin.math.sqrt(value)
+        }
+
+        /**
+         * Solve for ISO: ISO = 100 * N^2 / (t * 2^EV100)
+         */
+        fun calculateFilmIso(ev100: Double, filmAperture: Double, filmShutterSpeed: Double): Int {
+            val denominator = filmShutterSpeed * 2.0.pow(ev100)
+            if (denominator <= 0.0) return 100
+            val iso = 100.0 * (filmAperture * filmAperture) / denominator
+            return iso.roundToInt().coerceIn(25, 12800)
+        }
+
+        /**
+         * Snaps a computed aperture value to the nearest entry in the given list.
+         * Returns the index into the list.
+         */
+        fun snapToNearestAperture(computed: Double, options: List<Double>): Int {
+            var bestIndex = 0
+            var bestDiff = Double.MAX_VALUE
+            for ((i, f) in options.withIndex()) {
+                val diff = abs(computed - f)
+                if (diff < bestDiff) {
+                    bestDiff = diff
+                    bestIndex = i
+                }
+            }
+            return bestIndex
+        }
+
+        /**
+         * Snaps a computed ISO value to the nearest entry in the given list.
+         * Returns the index into the list.
+         */
+        fun snapToNearestIso(computed: Int, options: List<Int>): Int {
+            var bestIndex = 0
+            var bestDiff = Int.MAX_VALUE
+            for ((i, iso) in options.withIndex()) {
+                val diff = abs(computed - iso)
+                if (diff < bestDiff) {
+                    bestDiff = diff
+                    bestIndex = i
+                }
+            }
+            return bestIndex
         }
 
         /** Rough lux approximation from EV100. Lux ≈ 2.5 * 2^EV100 */
         fun ev100ToLux(ev100: Double): Double {
             return 2.5 * 2.0.pow(ev100)
+        }
+
+        /** Convenience: given camera metadata, compute EV100 directly. */
+        fun computeEv100FromMetadata(
+                cameraAperture: Float,
+                exposureTimeNs: Long,
+                cameraIso: Int
+        ): Double {
+            val exposureTimeSec = exposureTimeNs / 1_000_000_000.0
+            val evCam = calculateEvCamera(cameraAperture, exposureTimeSec)
+            return calculateEv100(evCam, cameraIso)
         }
 
         /**
@@ -288,6 +403,17 @@ class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAn
                         else -> THIRD_STOPS
                     }
             return targetList.map { it.second }.reversed() // Reversed from shortest to longest
+        }
+
+        /** Returns the list of standard speed values (seconds) matching the label order. */
+        fun fetchStandardSpeedValues(stepsConfig: String = "third"): List<Double> {
+            val targetList =
+                    when (stepsConfig) {
+                        "full" -> FULL_STOPS
+                        "half" -> HALF_STOPS
+                        else -> THIRD_STOPS
+                    }
+            return targetList.map { it.first }.reversed() // Reversed from shortest to longest
         }
     }
 }

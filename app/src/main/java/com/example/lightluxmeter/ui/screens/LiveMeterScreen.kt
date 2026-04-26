@@ -19,9 +19,11 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -29,7 +31,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -48,6 +49,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.CenterFocusWeak
+import androidx.compose.material.icons.filled.CenterFocusStrong
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -63,7 +66,6 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -88,6 +90,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.lightluxmeter.R
 import com.example.lightluxmeter.domain.LuminosityAnalyzer
+import com.example.lightluxmeter.domain.MeteringMode
 import com.example.lightluxmeter.ui.viewmodels.ExposureViewModel
 import com.example.lightluxmeter.ui.viewmodels.SettingsViewModel
 import java.util.concurrent.ExecutorService
@@ -102,8 +105,10 @@ private val TextPrimary = Color(0xFFFFFFFF)
 private val TextSecondary = Color(0xFFAAAAAA)
 private val SelectedBg = Color(0xFF3A3A3A)
 
+enum class SolveMode { SHUTTER, APERTURE, ISO }
+
 @SuppressLint("DefaultLocale")
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun LiveMeterScreen(
     settingsViewModel: SettingsViewModel = viewModel(),
@@ -111,6 +116,7 @@ fun LiveMeterScreen(
 ) {
         val context = LocalContext.current
         val shutterSteps by settingsViewModel.shutterSpeedSteps.collectAsState()
+        val apertureSteps by settingsViewModel.apertureSteps.collectAsState()
 
         var hasCameraPermission by remember {
                 mutableStateOf(
@@ -138,21 +144,74 @@ fun LiveMeterScreen(
         var cameraApertureState by remember { mutableFloatStateOf(0f) }
         var cameraExposureNs by remember { mutableLongStateOf(0L) }
         var cameraIsoState by remember { mutableIntStateOf(0) }
-        var calibrationOffset by remember { mutableDoubleStateOf(0.0) }
 
         var selectedIsoIndex by remember { mutableIntStateOf(3) } // Default 400
         var selectedApertureIndex by remember { mutableIntStateOf(6) } // Default f/5.6
+        var selectedShutterIndex by remember { mutableIntStateOf(-1) } // Used when shutter is user-set
+        var solveMode by remember { mutableStateOf(SolveMode.SHUTTER) }
 
-        val selectedIso = LiveMeterConstants.ISO_OPTIONS[selectedIsoIndex]
-        val selectedAperture = LiveMeterConstants.APERTURE_OPTIONS[selectedApertureIndex]
-        val shutterSeconds =
-                LuminosityAnalyzer.calculateFilmShutterSpeed(
-                        currentEv100,
-                        selectedIso,
-                        selectedAperture
+        val apertureOptions = LiveMeterConstants.getApertureOptions(apertureSteps)
+        // Clamp index when list size changes due to step setting change
+        val clampedApertureIndex = selectedApertureIndex.coerceIn(0, apertureOptions.lastIndex)
+        if (clampedApertureIndex != selectedApertureIndex) selectedApertureIndex = clampedApertureIndex
+
+        val allSpeeds = LuminosityAnalyzer.fetchStandardSpeedLabels(shutterSteps)
+        val allSpeedValues = LuminosityAnalyzer.fetchStandardSpeedValues(shutterSteps)
+
+        // Compute exposure values based on solve mode
+        val selectedIso: Int
+        val selectedAperture: Double
+        val shutterSeconds: Double
+        val displayShutterIndex: Int
+        val displayApertureIndex: Int
+        val displayIsoIndex: Int
+
+        when (solveMode) {
+            SolveMode.SHUTTER -> {
+                selectedIso = LiveMeterConstants.ISO_OPTIONS[selectedIsoIndex]
+                selectedAperture = apertureOptions[selectedApertureIndex]
+                shutterSeconds = LuminosityAnalyzer.calculateFilmShutterSpeed(
+                    currentEv100, selectedIso, selectedAperture
                 )
+                val bestSpeedStr = LuminosityAnalyzer.formatShutterSpeed(shutterSeconds, shutterSteps)
+                displayShutterIndex = allSpeeds.indexOf(bestSpeedStr)
+                displayApertureIndex = selectedApertureIndex
+                displayIsoIndex = selectedIsoIndex
+            }
+            SolveMode.APERTURE -> {
+                selectedIso = LiveMeterConstants.ISO_OPTIONS[selectedIsoIndex]
+                // Get shutter speed from user selection
+                val clampedShutterIdx = selectedShutterIndex.coerceIn(0, allSpeedValues.lastIndex)
+                if (clampedShutterIdx != selectedShutterIndex) selectedShutterIndex = clampedShutterIdx
+                shutterSeconds = allSpeedValues[clampedShutterIdx]
+                val computedAperture = LuminosityAnalyzer.calculateFilmAperture(
+                    currentEv100, selectedIso, shutterSeconds
+                )
+                val snappedIdx = LuminosityAnalyzer.snapToNearestAperture(computedAperture, apertureOptions)
+                selectedAperture = apertureOptions[snappedIdx]
+                displayShutterIndex = clampedShutterIdx
+                displayApertureIndex = snappedIdx
+                displayIsoIndex = selectedIsoIndex
+            }
+            SolveMode.ISO -> {
+                selectedAperture = apertureOptions[selectedApertureIndex]
+                // Get shutter speed from user selection
+                val clampedShutterIdx = selectedShutterIndex.coerceIn(0, allSpeedValues.lastIndex)
+                if (clampedShutterIdx != selectedShutterIndex) selectedShutterIndex = clampedShutterIdx
+                shutterSeconds = allSpeedValues[clampedShutterIdx]
+                val computedIso = LuminosityAnalyzer.calculateFilmIso(
+                    currentEv100, selectedAperture, shutterSeconds
+                )
+                val snappedIsoIdx = LuminosityAnalyzer.snapToNearestIso(computedIso, LiveMeterConstants.ISO_OPTIONS)
+                selectedIso = LiveMeterConstants.ISO_OPTIONS[snappedIsoIdx]
+                displayShutterIndex = clampedShutterIdx
+                displayApertureIndex = selectedApertureIndex
+                displayIsoIndex = snappedIsoIdx
+            }
+        }
 
         var isLocked by remember { mutableStateOf(false) }
+        var currentMeteringMode by remember { mutableStateOf(MeteringMode.SPOT) }
 
         var showSaveDialog by remember { mutableStateOf(false) }
         var saveNote by remember { mutableStateOf("") }
@@ -172,7 +231,7 @@ fun LiveMeterScreen(
                                         modifier = Modifier.padding(16.dp),
                                         horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                        // Title and Lock Button Row
+                                        // Title and Lock/Metering Button Row
                                         Row(
                                                 modifier = Modifier.fillMaxWidth(),
                                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -191,20 +250,23 @@ fun LiveMeterScreen(
                                                         fontSize = 18.sp,
                                                         fontWeight = FontWeight.Bold
                                                 )
-                                                IconButton(onClick = { isLocked = !isLocked }) {
-                                                        Icon(
-                                                                imageVector =
+                                                // Lock button
+                                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                        IconButton(onClick = { isLocked = !isLocked }, modifier = Modifier.size(36.dp)) {
+                                                                Icon(
+                                                                        imageVector =
+                                                                                if (isLocked)
+                                                                                        Icons.Filled.Lock
+                                                                                else Icons.Filled.LockOpen,
+                                                                        contentDescription =
                                                                         if (isLocked)
-                                                                                Icons.Filled.Lock
-                                                                        else Icons.Filled.LockOpen,
-                                                                contentDescription =
-                                                                if (isLocked)
-                                                                        stringResource(R.string.meter_unlock_content_desc)
-                                                                else stringResource(R.string.meter_lock_content_desc),
-                                                                tint =
-                                                                        if (isLocked) Amber
-                                                                        else TextSecondary
-                                                        )
+                                                                                stringResource(R.string.meter_unlock_content_desc)
+                                                                        else stringResource(R.string.meter_lock_content_desc),
+                                                                        tint =
+                                                                                if (isLocked) Amber
+                                                                                else TextSecondary
+                                                                )
+                                                        }
                                                 }
                                         }
 
@@ -274,39 +336,37 @@ fun LiveMeterScreen(
                                                 fontSize = 11.sp
                                         )
 
-                                        // Calibration offset row
-                                        Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.Center,
-                                                modifier = Modifier.padding(top = 6.dp)
+                                        // Metering mode row
+                                        Box(
+                                                modifier = Modifier.fillMaxWidth().padding(top = 6.dp)
                                         ) {
-                                                Text(
-                                                        text = stringResource(R.string.meter_camera_prefix),
-                                                        color = MaterialTheme.colorScheme.primary,
-                                                        fontSize = 11.sp
-                                                )
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                TextButton(
-                                                        onClick = { calibrationOffset -= 0.5 },
-                                                        modifier = Modifier.size(28.dp),
-                                                        contentPadding = PaddingValues(0.dp)
-                                                ) { Text("−", color = Amber, fontSize = 16.sp) }
-                                                Text(
-                                                        text =
-                                                                String.format(
-                                                                        "%+.1f",
-                                                                        calibrationOffset
-                                                                ),
-                                                        color = TextPrimary,
-                                                        fontSize = 12.sp,
-                                                        modifier =
-                                                                Modifier.padding(horizontal = 4.dp)
-                                                )
-                                                TextButton(
-                                                        onClick = { calibrationOffset += 0.5 },
-                                                        modifier = Modifier.size(28.dp),
-                                                        contentPadding = PaddingValues(0.dp)
-                                                ) { Text("+", color = Amber, fontSize = 16.sp) }
+                                                Column(
+                                                        modifier = Modifier.align(Alignment.CenterEnd),
+                                                        horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                        IconButton(
+                                                                onClick = {
+                                                                        currentMeteringMode = if (currentMeteringMode == MeteringMode.SPOT)
+                                                                                MeteringMode.CENTER_WEIGHTED else MeteringMode.SPOT
+                                                                },
+                                                                modifier = Modifier.size(36.dp)
+                                                        ) {
+                                                                Icon(
+                                                                        imageVector = if (currentMeteringMode == MeteringMode.SPOT)
+                                                                                Icons.Filled.CenterFocusStrong
+                                                                        else Icons.Filled.CenterFocusWeak,
+                                                                        contentDescription = if (currentMeteringMode == MeteringMode.SPOT)
+                                                                                stringResource(R.string.metering_spot_desc) else stringResource(R.string.metering_cw_desc),
+                                                                        tint = if (currentMeteringMode == MeteringMode.CENTER_WEIGHTED) Amber
+                                                                                else TextSecondary
+                                                                )
+                                                        }
+                                                        Text(
+                                                                text = if (currentMeteringMode == MeteringMode.SPOT) stringResource(R.string.metering_spot_label) else stringResource(R.string.metering_cw_label),
+                                                                color = if (currentMeteringMode == MeteringMode.CENTER_WEIGHTED) Amber else TextSecondary,
+                                                                fontSize = 9.sp
+                                                        )
+                                                }
                                         }
                                 }
                         }
@@ -318,38 +378,48 @@ fun LiveMeterScreen(
                                 colors = CardDefaults.cardColors(containerColor = CardBg)
                         ) {
                                 Column(modifier = Modifier.padding(12.dp)) {
-                                        // Headers
+                                        // Headers — long-press to set solve mode
                                         Row(modifier = Modifier.fillMaxWidth()) {
+                                                // Aperture header
                                                 Text(
-                                                        text =
-                                                                stringResource(
-                                                                        R.string
-                                                                                .exposure_table_aperture
-                                                                ),
-                                                        color = Amber,
+                                                        text = stringResource(R.string.exposure_table_aperture),
+                                                        color = if (solveMode == SolveMode.APERTURE) Amber else TextSecondary,
                                                         fontSize = 14.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        modifier = Modifier.weight(1f),
+                                                        fontWeight = if (solveMode == SolveMode.APERTURE) FontWeight.Bold else FontWeight.Normal,
+                                                        modifier = Modifier
+                                                                .weight(1f)
+                                                                .combinedClickable(
+                                                                        onClick = { },
+                                                                        onLongClick = { solveMode = SolveMode.APERTURE }
+                                                                ),
                                                         textAlign = TextAlign.Center
                                                 )
+                                                // Shutter header
                                                 Text(
-                                                        text =
-                                                                stringResource(
-                                                                        R.string
-                                                                                .exposure_table_shutter_speed
-                                                                ),
-                                                        color = Amber,
+                                                        text = stringResource(R.string.exposure_table_shutter_speed),
+                                                        color = if (solveMode == SolveMode.SHUTTER) Amber else TextSecondary,
                                                         fontSize = 14.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        modifier = Modifier.weight(1f),
+                                                        fontWeight = if (solveMode == SolveMode.SHUTTER) FontWeight.Bold else FontWeight.Normal,
+                                                        modifier = Modifier
+                                                                .weight(1f)
+                                                                .combinedClickable(
+                                                                        onClick = { },
+                                                                        onLongClick = { solveMode = SolveMode.SHUTTER }
+                                                                ),
                                                         textAlign = TextAlign.Center
                                                 )
+                                                // ISO header
                                                 Text(
                                                         text = stringResource(R.string.flash_calc_iso),
-                                                        color = Amber,
+                                                        color = if (solveMode == SolveMode.ISO) Amber else TextSecondary,
                                                         fontSize = 14.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        modifier = Modifier.weight(1f),
+                                                        fontWeight = if (solveMode == SolveMode.ISO) FontWeight.Bold else FontWeight.Normal,
+                                                        modifier = Modifier
+                                                                .weight(1f)
+                                                                .combinedClickable(
+                                                                        onClick = { },
+                                                                        onLongClick = { solveMode = SolveMode.ISO }
+                                                                ),
                                                         textAlign = TextAlign.Center
                                                 )
                                         }
@@ -360,37 +430,25 @@ fun LiveMeterScreen(
                                         Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
                                                 // Aperture column
                                                 ScrollableSelector(
-                                                        items = LiveMeterConstants.APERTURE_OPTIONS.map { "f/${it}" },
-                                                        selectedIndex = selectedApertureIndex,
-                                                        onSelect = { selectedApertureIndex = it },
+                                                        items = apertureOptions.map { "f/${it}" },
+                                                        selectedIndex = displayApertureIndex,
+                                                        onSelect = { if (solveMode != SolveMode.APERTURE) selectedApertureIndex = it },
                                                         modifier = Modifier.weight(1f)
                                                 )
 
                                                 // Shutter Speed column
-                                                val allSpeeds =
-                                                        LuminosityAnalyzer.fetchStandardSpeedLabels(
-                                                                shutterSteps
-                                                        )
-                                                val bestSpeedStr =
-                                                        LuminosityAnalyzer.formatShutterSpeed(
-                                                                shutterSeconds,
-                                                                shutterSteps
-                                                        )
-                                                val bestSpeedIndex = allSpeeds.indexOf(bestSpeedStr)
-
                                                 ScrollableSelector(
                                                         items = allSpeeds,
-                                                        selectedIndex = bestSpeedIndex,
-                                                        onSelect = { /* Read only from user perspective, auto-scrolls */
-                                                        },
+                                                        selectedIndex = displayShutterIndex,
+                                                        onSelect = { if (solveMode != SolveMode.SHUTTER) selectedShutterIndex = it },
                                                         modifier = Modifier.weight(1f)
                                                 )
 
                                                 // ISO column
                                                 ScrollableSelector(
                                                         items = LiveMeterConstants.ISO_OPTIONS.map { it.toString() },
-                                                        selectedIndex = selectedIsoIndex,
-                                                        onSelect = { selectedIsoIndex = it },
+                                                        selectedIndex = displayIsoIndex,
+                                                        onSelect = { if (solveMode != SolveMode.ISO) selectedIsoIndex = it },
                                                         modifier = Modifier.weight(1f)
                                                 )
                                         }
@@ -405,6 +463,7 @@ fun LiveMeterScreen(
                         ) {
                                 Box(modifier = Modifier.fillMaxSize()) {
                                         CameraPreviewWithMetadata(
+                                                meteringMode = currentMeteringMode,
                                                 onMetadataUpdate = { aperture, exposureNs, iso ->
                                                         if (!isLocked) {
                                                                 cameraApertureState = aperture
@@ -418,8 +477,7 @@ fun LiveMeterScreen(
                                                                                 .computeEv100FromMetadata(
                                                                                         aperture,
                                                                                         exposureNs,
-                                                                                        iso,
-                                                                                        calibrationOffset
+                                                                                        iso
                                                                                 )
                                                                 
                                                                 exposureViewModel.updateLiveMetadata(ev100)
@@ -448,15 +506,15 @@ fun LiveMeterScreen(
                                         confirmButton = {
                                                 TextButton(
                                                         onClick = {
-                                                                val selectedAperture = LiveMeterConstants.APERTURE_OPTIONS[selectedApertureIndex]
+                                                                val saveAperture = apertureOptions[selectedApertureIndex]
                                                                 val formattedSpeed = LuminosityAnalyzer.formatShutterSpeed(shutterSeconds, shutterSteps)
-                                                                val selectedIso = LiveMeterConstants.ISO_OPTIONS[selectedIsoIndex]
+                                                                val saveIso = LiveMeterConstants.ISO_OPTIONS[selectedIsoIndex]
                                                                 exposureViewModel.saveReading(
                                                                         currentEv100.toFloat(),
                                                                         currentLux.toFloat(),
-                                                                        selectedAperture,
+                                                                        saveAperture,
                                                                         formattedSpeed,
-                                                                        selectedIso,
+                                                                        saveIso,
                                                                         saveNote
                                                                 )
                                                                 showSaveDialog = false
@@ -500,6 +558,7 @@ private fun formatExposureTime(ns: Long): String {
 @androidx.annotation.OptIn(ExperimentalCamera2Interop::class)
 @Composable
 fun CameraPreviewWithMetadata(
+        meteringMode: MeteringMode = MeteringMode.SPOT,
         onMetadataUpdate: (aperture: Float, exposureTimeNs: Long, iso: Int) -> Unit
 ) {
         val context = LocalContext.current
@@ -514,6 +573,11 @@ fun CameraPreviewWithMetadata(
         var tapPosition by remember { mutableStateOf<Offset?>(null) }
 
         val analyzer = remember { LuminosityAnalyzer { } }
+
+        // Update analyzer metering mode when it changes
+        LaunchedEffect(meteringMode) {
+                analyzer.meteringMode = meteringMode
+        }
 
         DisposableEffect(Unit) {
                 val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
@@ -609,64 +673,85 @@ fun CameraPreviewWithMetadata(
                         factory = { previewView },
                         modifier =
                                 Modifier.fillMaxSize()
-                                        .pointerInput(Unit) {
-                                                detectTapGestures(
-                                                        onTap = { offset ->
-                                                                tapPosition = offset
-                                                                analyzer.spotPosition = (offset.x / size.width).toDouble() to (offset.y / size.height).toDouble()
-                                                                val factory = previewView.meteringPointFactory
-                                                                val point = factory.createPoint(offset.x, offset.y)
-                                                                val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AE).build()
-                                                                cameraControl?.startFocusAndMetering(action)
-                                                        }
-                                                )
+                                        .pointerInput(meteringMode) {
+                                                if (meteringMode == MeteringMode.SPOT) {
+                                                        detectTapGestures(
+                                                                onTap = { offset ->
+                                                                        tapPosition = offset
+                                                                        analyzer.spotPosition = (offset.x / size.width).toDouble() to (offset.y / size.height).toDouble()
+                                                                        val factory = previewView.meteringPointFactory
+                                                                        val point = factory.createPoint(offset.x, offset.y)
+                                                                        val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AE).build()
+                                                                        cameraControl?.startFocusAndMetering(action)
+                                                                }
+                                                        )
+                                                }
                                         }
-                                        .pointerInput(Unit) {
-                                                detectDragGestures(
-                                                        onDragStart = { offset ->
-                                                                tapPosition = offset
-
-                                                                analyzer.spotPosition = (offset.x / size.width).toDouble() to (offset.y / size.height).toDouble()
-
-                                                                val factory = previewView.meteringPointFactory
-                                                                val point = factory.createPoint(offset.x, offset.y)
-                                                                val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AE).build()
-                                                                cameraControl?.startFocusAndMetering(action)
-                                                        },
-                                                        onDrag = { change, dragAmount ->
-                                                                change.consume()
-                                                                val newPos = (tapPosition ?: change.position) + dragAmount
-                                                                tapPosition = newPos
-
-                                                                analyzer.spotPosition = (newPos.x / size.width).toDouble() to (newPos.y / size.height).toDouble()
-
-                                                                val factory = previewView.meteringPointFactory
-                                                                val point = factory.createPoint(newPos.x, newPos.y)
-                                                                val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AE).build()
-                                                                cameraControl?.setZoomRatio(currentZoomRatio) // keep zoom
-                                                                cameraControl?.startFocusAndMetering(action)
-                                                        }
-                                                )
+                                        .pointerInput(meteringMode) {
+                                                if (meteringMode == MeteringMode.SPOT) {
+                                                        detectDragGestures(
+                                                                onDragStart = { offset ->
+                                                                        tapPosition = offset
+                                                                        analyzer.spotPosition = (offset.x / size.width).toDouble() to (offset.y / size.height).toDouble()
+                                                                        val factory = previewView.meteringPointFactory
+                                                                        val point = factory.createPoint(offset.x, offset.y)
+                                                                        val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AE).build()
+                                                                        cameraControl?.startFocusAndMetering(action)
+                                                                },
+                                                                onDrag = { change, dragAmount ->
+                                                                        change.consume()
+                                                                        val newPos = (tapPosition ?: change.position) + dragAmount
+                                                                        tapPosition = newPos
+                                                                        analyzer.spotPosition = (newPos.x / size.width).toDouble() to (newPos.y / size.height).toDouble()
+                                                                        val factory = previewView.meteringPointFactory
+                                                                        val point = factory.createPoint(newPos.x, newPos.y)
+                                                                        val action = FocusMeteringAction.Builder(point, FocusMeteringAction.FLAG_AE).build()
+                                                                        cameraControl?.setZoomRatio(currentZoomRatio)
+                                                                        cameraControl?.startFocusAndMetering(action)
+                                                                }
+                                                        )
+                                                }
                                         }
                 )
 
-                // Circle indicator at tap position
-                val currentTapPosition = tapPosition
-                if (currentTapPosition != null) {
-                        val circleSize = 50.dp
-                        val density = LocalDensity.current
-                        val offsetX = with(density) { currentTapPosition.x.toDp() - circleSize / 2 }
-                        val offsetY = with(density) { currentTapPosition.y.toDp() - circleSize / 2 }
-                        Box(
-                                modifier =
-                                        Modifier.offset(x = offsetX, y = offsetY)
-                                                .size(circleSize)
+                // Spot metering: circle indicator at tap position
+                if (meteringMode == MeteringMode.SPOT) {
+                        val currentTapPosition = tapPosition
+                        if (currentTapPosition != null) {
+                                val circleSize = 50.dp
+                                val density = LocalDensity.current
+                                val offsetX = with(density) { currentTapPosition.x.toDp() - circleSize / 2 }
+                                val offsetY = with(density) { currentTapPosition.y.toDp() - circleSize / 2 }
+                                Box(
+                                        modifier =
+                                                Modifier.offset(x = offsetX, y = offsetY)
+                                                        .size(circleSize)
+                                                        .border(
+                                                                width = 1.5.dp,
+                                                                color = Color.White,
+                                                                shape = RoundedCornerShape(50)
+                                                        )
+                                )
+                        }
+                }
+
+                // Center-weighted metering: show 60% zone circle in center
+                if (meteringMode == MeteringMode.CENTER_WEIGHTED) {
+                        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                                val cwSize = with(LocalDensity.current) {
+                                        (kotlin.math.min(constraints.maxWidth, constraints.maxHeight) * 0.30f).toDp()
+                                }
+                                Box(
+                                        modifier = Modifier
+                                                .align(Alignment.Center)
+                                                .size(cwSize)
                                                 .border(
-                                                        width = 1.5.dp,
-                                                        color = Color.White,
+                                                        width = 1.dp,
+                                                        color = Amber.copy(alpha = 0.5f),
                                                         shape = RoundedCornerShape(50)
                                                 )
-                        )
+                                )
+                        }
                 }
 
                 // Custom Zoom bar on the far right
@@ -827,5 +912,14 @@ fun ScrollableSelector(
 
 object LiveMeterConstants {
     val ISO_OPTIONS = listOf(50, 100, 200, 400, 800, 1600, 3200, 6400)
-    val APERTURE_OPTIONS = listOf(1.8, 2.4, 2.8, 3.5, 4.0, 4.8, 5.6, 6.7, 8.0, 9.5, 11.0, 13.0, 16.0, 19.0, 22.0)
+
+    val APERTURE_FULL = listOf(1.4, 2.0, 2.8, 4.0, 5.6, 8.0, 11.0, 16.0, 22.0)
+    val APERTURE_HALF = listOf(1.4, 1.7, 2.0, 2.4, 2.8, 3.3, 4.0, 4.8, 5.6, 6.7, 8.0, 9.5, 11.0, 13.0, 16.0, 19.0, 22.0)
+    val APERTURE_THIRD = listOf(1.4, 1.6, 1.8, 2.0, 2.2, 2.5, 2.8, 3.2, 3.5, 4.0, 4.5, 5.0, 5.6, 6.3, 7.1, 8.0, 9.0, 10.0, 11.0, 13.0, 14.0, 16.0, 18.0, 20.0, 22.0)
+
+    fun getApertureOptions(stepsConfig: String): List<Double> = when (stepsConfig) {
+        "full" -> APERTURE_FULL
+        "half" -> APERTURE_HALF
+        else -> APERTURE_THIRD
+    }
 }

@@ -39,6 +39,7 @@
     <string name="recommended_settings">Setări Recomandate (f/16)</string>
     <string name="nav_flash_calc">Flash</string>
     <string name="settings_shutter_steps">Pasul timpului de expunere</string>
+    <string name="settings_aperture_steps">Pasul diafragmei</string>
     <string name="shutter_step_full">Trepte întregi</string>
     <string name="shutter_step_half">Trepte de 1/2</string>
     <string name="shutter_step_third">Trepte de 1/3</string>
@@ -60,4 +61,15 @@
     <string name="distance_m_format">%1$.1f m</string>
     <string name="gn_format">%1$d m @ %2$d mm</string>
     <string name="close">Inchide</string>"
+    <string name="nav_reciprocity">Recip.</string>
+    <string name="reciprocity_corrected_label">TIMP CORECTAT</string>
+    <string name="reciprocity_metered_format">Măsurat: %1$s</string>
+    <string name="reciprocity_factor_format">Factor de reciprocitate: p = %1$s</string>
+    <string name="reciprocity_not_needed">Nu e necesară corecție (≤ 1s)</string>
+    <string name="reciprocity_film_stock">Film</string>
+    <string name="reciprocity_metered_speed">Timp de expunere măsurat</string>
+    <string name="metering_spot_desc">Măsurare Punct</string>
+    <string name="metering_cw_desc">Măsurare Central-Ponderată</string>
+    <string name="metering_spot_label">SPOT</string>
+    <string name="metering_cw_label">60/40</string>
 </resources>

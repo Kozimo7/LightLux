@@ -11,8 +11,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.lightluxmeter.R
 import com.example.lightluxmeter.domain.LuminosityAnalyzer
+import com.example.lightluxmeter.ui.viewmodels.SettingsViewModel
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
@@ -22,7 +24,8 @@ private val Amber = Color(0xFFFFB74D)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FlashCalcScreen() {
+fun FlashCalcScreen(settingsViewModel: SettingsViewModel = viewModel()) {
+        val apertureSteps by settingsViewModel.apertureSteps.collectAsState()
         // 1. Definition of State variables with default values
         var gnIndex by remember { mutableIntStateOf(1) } // 28 default
         var isoIndex by remember { mutableIntStateOf(3) } // 400 ISO default
@@ -33,24 +36,9 @@ fun FlashCalcScreen() {
         val gnValues = listOf(15f, 28f, 30f, 36f, 42f, 50f, 53f, 58f)
         val gnFocalLengths = listOf(14, 24, 28, 35, 50, 70, 80, 105)
         val isoValues = listOf(50, 100, 200, 400, 800, 1600, 3200, 6400)
-        val apertureValues =
-                listOf(
-                        1.8f,
-                        2.4f,
-                        2.8f,
-                        3.5f,
-                        4.0f,
-                        4.8f,
-                        5.6f,
-                        6.7f,
-                        8.0f,
-                        9.5f,
-                        11.0f,
-                        13.0f,
-                        16.0f,
-                        19.0f,
-                        22.0f
-                )
+        val apertureValues = LiveMeterConstants.getApertureOptions(apertureSteps).map { it.toFloat() }
+        val clampedApertureIdx = apertureIndex.coerceIn(0, apertureValues.lastIndex)
+        if (clampedApertureIdx != apertureIndex) apertureIndex = clampedApertureIdx
         val powerBases = listOf("1/64", "1/32", "1/16", "1/8", "1/4", "1/2", "1/1")
         val powerValues =
                 mutableListOf<Double>().apply {

@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.FlashOn
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -27,17 +28,19 @@ import com.example.lightluxmeter.ui.screens.FilmGalleryScreen
 import com.example.lightluxmeter.ui.screens.FlashCalcScreen
 import com.example.lightluxmeter.ui.screens.HistoryScreen
 import com.example.lightluxmeter.ui.screens.LiveMeterScreen
+import com.example.lightluxmeter.ui.screens.ReciprocityScreen
 import com.example.lightluxmeter.ui.screens.SettingsScreen
 
 sealed class Screen(val route: String, val titleResId: Int, val icon: ImageVector) {
     object LiveMeter : Screen("live_meter", R.string.nav_meter, Icons.Filled.PlayArrow)
     object FlashCalc : Screen("flash_calc", R.string.nav_flash_calc, Icons.Filled.FlashOn)
     object FilmGallery : Screen("film_gallery", R.string.nav_films, Icons.AutoMirrored.Filled.List)
+    object Reciprocity : Screen("reciprocity", R.string.nav_reciprocity, Icons.Filled.Timer)
     object History : Screen("history", R.string.nav_logs, Icons.Filled.History)
     object Settings : Screen("settings", R.string.nav_settings, Icons.Filled.Settings)
 }
 
-val items = listOf(Screen.LiveMeter, Screen.FlashCalc, Screen.FilmGallery, Screen.History, Screen.Settings)
+val items = listOf(Screen.LiveMeter, Screen.FlashCalc, Screen.FilmGallery, Screen.Reciprocity, Screen.History, Screen.Settings)
 
 @Composable
 fun MainScreen() {
@@ -51,6 +54,7 @@ fun MainScreen() {
             composable(Screen.LiveMeter.route) { LiveMeterScreen() }
             composable(Screen.FlashCalc.route) { FlashCalcScreen() }
             composable(Screen.FilmGallery.route) { FilmGalleryScreen() }
+            composable(Screen.Reciprocity.route) { ReciprocityScreen() }
             composable(Screen.History.route) { HistoryScreen() }
             composable(Screen.Settings.route) { SettingsScreen() }
         }
