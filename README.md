@@ -5,9 +5,10 @@
 ### Screenshots
 
 <p align="center">
-  <img src="screenshots/main.png" width="30%" />
-  <img src="screenshots/flash.png" width="30%" />
-  <img src="screenshots/pictures.png" width="30%" /> 
+  <img src="screenshots/main.png" width="35%" />
+  <img src="screenshots/flash.png" width="35%" />
+  <img src="screenshots/pictures.png" width="35%" /> 
+  <img src="screenshots/reciprocity.png" width="35%" />
 </p>
 
 ## ✨ Key Features
@@ -17,11 +18,13 @@
 - **Scientific Measurement**: Measures intensity in **LUX** and computes exposure in **EV (Exposure Value)**.
 - **Dynamic Stability**: Implements 0.5s continuous background buffering for smooth, reliable readings without jitter.
 - **Tap-to-Meter**: Intuitive focus and metering by tapping anywhere on the camera preview.
+- **Metering Modes**: Switch between precision Spot Metering (5% area) and classic 60/40 Center-Weighted metering.
 - **Lock System**: Lock your readings to securely calculate settings without sensor interference.
 
 ### 🔹 2. Advanced Exposure Calculator
 
 - **Film Parameters**: Quick selection of ISO (50-6400), Aperture (f/1.8-f/22), and Shutter Speed.
+- **Priority Modes**: Set your desired aperture or shutter speed, and the app seamlessly calculates the corresponding value.
 - **Focal Length Simulation**: A custom, non-linear zoom bar (26mm to 390mm) with **gradual control** (75% of the slider for the common 26-150mm range).
 - **Step-Adjustable Speed**: Choose between 1, 1/2, or 1/3 exposure steps in settings.
 
@@ -33,6 +36,7 @@
 
 ### 🔹 4. Specialized Tools
 
+- **Reciprocity Failure Calculator**: Automatically calculate long exposure compensation for an extensive database of popular film stocks (Kodak, Ilford, Fujifilm, CineStill, etc.).
 - **Flash Guide Number Calculator**: Quickly determine the required aperture or distance for your external flash.
 - **Film Gallery Integration**: Browse stunning film photography inspiration, powered by the **Unsplash API** using Retrofit and HTTPS.
 

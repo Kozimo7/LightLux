@@ -10,12 +10,6 @@ import kotlin.math.log2
 import kotlin.math.pow
 import kotlin.math.roundToInt
 
-// TODOs resolved in this version:
-// ✓ F-stop 1/2 and 1/3 steps
-// ✓ Ability to set aperture or shutter and modify the other
-// ✓ Reciprocity calculator
-// ✓ 60/40 center-weighted metering
-
 enum class MeteringMode { SPOT, CENTER_WEIGHTED }
 
 class LuminosityAnalyzer(private val listener: (luma: Double) -> Unit) : ImageAnalysis.Analyzer {

@@ -23,24 +23,45 @@ object ReciprocityData {
         FilmStock("Kodak Ektar 100", 1.30),
         FilmStock("Kodak Gold 200", 1.33),
         FilmStock("Kodak ColorPlus 200", 1.33),
+        FilmStock("Kodak UltraMax 400", 1.33), 
 
         // Kodak B&W
         FilmStock("Kodak T-Max 100", 1.15),
         FilmStock("Kodak T-Max 400", 1.15),
-        FilmStock("Kodak Tri-X 400", 1.54),
+        FilmStock("Kodak Tri-X 400", 1.33),
 
-        // Ilford B&W
+        // Ilford / Harman B&W
         FilmStock("Ilford HP5 Plus 400", 1.31),
-        FilmStock("Ilford FP4 Plus 125", 1.30),
+        FilmStock("Ilford FP4 Plus 125", 1.40),
         FilmStock("Ilford Delta 100", 1.26),
+        FilmStock("Ilford Delta 400", 1.33),
         FilmStock("Ilford Delta 3200", 1.33),
+        FilmStock("Ilford XP2 Super 400", 1.31), 
+        FilmStock("Ilford SFX 200", 1.33),       
+        FilmStock("Kentmere Pan 100", 1.33),
+        FilmStock("Kentmere Pan 200", 1.32),
+        FilmStock("Kentmere Pan 400", 1.31),
+        FilmStock("Harman Phoenix 200", 1.35), 
 
         // Fujifilm
-        FilmStock("Fujifilm Superia 400", 1.33),
+        FilmStock("Fujifilm Neopan Acros 100 II", 1.00),
+        FilmStock("Fujifilm Provia 100F", 1.10),
+        FilmStock("Fujifilm Velvia 50", 1.20),
+        FilmStock("Fujifilm 200 (New)", 1.33),
+        FilmStock("Fujifilm 400 (New)", 1.33),
+        FilmStock("Fujifilm Superia Premium 400", 1.33),
         FilmStock("Fujifilm C200", 1.33),
 
-        // CineStill
-        FilmStock("CineStill 800T", 1.30)
+        // CineStill / Vision3
+        FilmStock("CineStill 800T", 1.30),
+        FilmStock("CineStill 50D", 1.30),
+        FilmStock("CineStill 400D", 1.30),
+
+        // Other
+        FilmStock("Lucky Color C200", 1.35),
+        FilmStock("Fomapan 100", 1.54),
+        FilmStock("Lomography Color 100", 1.30),
+        FilmStock("Lomography Color 400/800", 1.33)
     )
 
     /**
