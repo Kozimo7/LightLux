@@ -40,22 +40,15 @@ class DomainTests {
     @Test
     fun ev100_iso100_noOffset() {
         // At ISO 100, EV100 = EV_cam - log2(1) + 0 = EV_cam
-        val ev100 = LuminosityAnalyzer.calculateEv100(14.0, 100, 0.0)
+        val ev100 = LuminosityAnalyzer.calculateEv100(14.0, 100)
         assertEquals(14.0, ev100, 0.001)
     }
 
     @Test
     fun ev100_iso400_noOffset() {
         // At ISO 400, EV100 = 14 - log2(4) = 14 - 2 = 12
-        val ev100 = LuminosityAnalyzer.calculateEv100(14.0, 400, 0.0)
+        val ev100 = LuminosityAnalyzer.calculateEv100(14.0, 400)
         assertEquals(12.0, ev100, 0.001)
-    }
-
-    @Test
-    fun ev100_withCalibrationOffset() {
-        // At ISO 100 with +1.5 offset: EV100 = 14 - 0 + 1.5 = 15.5
-        val ev100 = LuminosityAnalyzer.calculateEv100(14.0, 100, 1.5)
-        assertEquals(15.5, ev100, 0.001)
     }
 
     // ── calculateFilmShutterSpeed ──
@@ -90,8 +83,7 @@ class DomainTests {
                 LuminosityAnalyzer.computeEv100FromMetadata(
                         cameraAperture = 2.4f,
                         exposureTimeNs = 1_000_000L, // 1ms
-                        cameraIso = 100,
-                        calibrationOffset = 0.0
+                        cameraIso = 100
                 )
         // EV_cam = log2(5.76 / 0.001) = log2(5760) ≈ 12.49
         // EV100 = 12.49 - 0 = 12.49
@@ -105,8 +97,7 @@ class DomainTests {
                 LuminosityAnalyzer.computeEv100FromMetadata(
                         cameraAperture = 1.8f,
                         exposureTimeNs = 33_333_333L, // ~1/30s
-                        cameraIso = 800,
-                        calibrationOffset = 0.0
+                        cameraIso = 800
                 )
         // EV_cam = log2(3.24 / 0.0333) ≈ log2(97.3) ≈ 6.60
         // EV100 = 6.60 - log2(8) = 6.60 - 3.0 = 3.60
@@ -184,8 +175,8 @@ class DomainTests {
 
     @Test
     fun formatShutter_snapsToNearest() {
-        // 1/400 is between 1/500 and 1/250 — should snap to 1/500 (closer on log scale)
-        val label = LuminosityAnalyzer.formatShutterSpeed(1.0 / 400.0)
+        // 1/400 is between 1/500 and 1/250 — should snap to 1/500 (closer on absolute scale)
+        val label = LuminosityAnalyzer.formatShutterSpeed(1.0 / 400.0, "full")
         assertEquals("1/500", label)
     }
 

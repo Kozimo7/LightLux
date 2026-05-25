@@ -7,8 +7,10 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
@@ -32,15 +34,15 @@ class SettingsRepository(private val context: Context) {
                 preferences[APERTURE_STEPS_KEY] ?: "third" // Default to 1/3 stops
             }
 
-    suspend fun setDarkMode(isEnabled: Boolean) {
+    suspend fun setDarkMode(isEnabled: Boolean) = withContext(Dispatchers.IO) {
         context.dataStore.edit { preferences -> preferences[DARK_MODE_KEY] = isEnabled }
     }
     
-    suspend fun setShutterSpeedSteps(stepValue: String) {
+    suspend fun setShutterSpeedSteps(stepValue: String) = withContext(Dispatchers.IO) {
         context.dataStore.edit { preferences -> preferences[SHUTTER_STEPS_KEY] = stepValue }
     }
     
-    suspend fun setApertureSteps(stepValue: String) {
+    suspend fun setApertureSteps(stepValue: String) = withContext(Dispatchers.IO) {
         context.dataStore.edit { preferences -> preferences[APERTURE_STEPS_KEY] = stepValue }
     }
 }
