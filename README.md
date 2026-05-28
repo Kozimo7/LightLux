@@ -15,36 +15,36 @@
   <img src="screenshots/reciprocity.png" width="35%" />
 </p>
 
-## ✨ Key Features
+## Key Features
 
-### 🔹 1. Real-Time Light Metering
+### 1. Real-Time Light Metering
 - **Accurate Measurement**: Measures intensity in **LUX** and computes exposure in **EV (Exposure Value)**.
 - **Dynamic Stability**: Implements 0.5s continuous background buffering for smooth, reliable readings without jitter.
 - **Tap-to-Meter**: Focus and spot meter by tapping anywhere on the live camera preview.
 - **Metering Modes**: Switch between precision Spot Metering (5% area) and classic 60/40 Center-Weighted metering.
 - **Lock System**: Lock your readings to securely calculate settings without sensor interference.
 
-### 🔹 2. Advanced Exposure Calculator
+### 2. Advanced Exposure Calculator
 
 - **Film Parameters**: Quick selection of ISO (50-6400), Aperture (f/1.8-f/22), and Shutter Speed.
 - **Priority Modes**: Set your desired aperture or shutter speed, and the app seamlessly calculates the corresponding value.
 - **Focal Length Simulation**: A custom, non-linear zoom bar (26mm to 390mm) with **gradual control** (75% of the slider for the common 26-150mm range).
 - **Step-Adjustable Speed**: Choose between 1, 1/2, or 1/3 exposure steps in settings.
 
-### 🔹 3. Encrypted History (Journal)
+### 3. Encrypted History (Journal)
 
 - **SQLCipher Integration**: Your photography logs are stored in a **256-bit AES encrypted** Room database.
 - **Metadata Persistence**: Saves EV, Lux, f-stop, Shutter Speed, ISO, and a timestamp for every reading.
 - **Secure Notes**: Add optional captions with built-in **input sanitization** to prevent data injection.
 
-### 🔹 4. Specialized Tools
+### 4. Specialized Tools
 - **Reciprocity Failure Calculator**: Computes long exposure adjustments for an database of 30+ popular film stocks (Kodak, Ilford, Fujifilm, CineStill, Fomapan, etc.).
 - **Flash Guide Number Calculator**: Instantly determine the required aperture or distance for your external flash.
 - **Film Gallery Integration**: Browse stunning photography inspiration powered by the **Unsplash API** using Retrofit and HTTPS.
 
 ---
 
-## 📐 Mathematical Foundations
+## Mathematical Foundations
 
 The core calculation logic in `LuminosityAnalyzer` is backed by standard photographic physics formulas:
 
@@ -82,7 +82,7 @@ $$D = \frac{GN_{effective}}{N}$$
 
 ---
 
-## 🛠️ Technology Stack & Architecture
+## Technology Stack & Architecture
 
 - **Language**: Kotlin with Coroutines and Flow.
 - **UI Framework**: Jetpack Compose (Modern, Declarative, Premium looks).
@@ -92,13 +92,13 @@ $$D = \frac{GN_{effective}}{N}$$
 - **Networking**: Retrofit & OkHttp for secure API communication.
 - **Design**: Modern "Dark Mode" aesthetic with Amber accents and premium card-based layouts.
 
-## 🔒 Security & Privacy
+## Security & Privacy
 
 - **Data Encryption**: All local data is encrypted at rest using SQLCipher.
 - **Privacy-First**: No location permissions or tracking data are requested or stored.
 - **Secure Communication**: All external API requests are forced through HTTPS.
 
-## 🚀 Getting Started
+## Getting Started
 
 1.  Clone the repository.
 2.  Open in Android Studio.
